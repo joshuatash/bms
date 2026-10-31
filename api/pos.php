@@ -1,0 +1,70 @@
+<?php
+require __DIR__ . '/../config.php';
+
+$user = current_user();
+if (!$user) json_out(['error' => 'Please log in again.'], 401);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') json_out(['error' => 'POST only.'], 405);
+if (!hash_equals($_SESSION['csrf'] ?? '', $_SERVER['HTTP_X_CSRF'] ?? '')) json_out(['error' => 'Invalid session token.'], 403);
+
+$in    = json_decode(file_get_contents('php://input'), true) ?: [];
+$items = $in['items'] ?? [];
+if (!is_array($items) || !$items) json_out(['error' => 'The cart is empty.'], 422);
+
+// Merge duplicates and validate quantities. Prices are NEVER taken from the browser.
+$want = [];
+foreach ($items as $it) {
+    $pid = (int)($it['product_id'] ?? 0);
+    $qty = (int)($it['qty'] ?? 0);
+    if ($pid < 1 || $qty < 1 || $qty > 100000) json_out(['error' => 'Invalid item in the cart.'], 422);
+    $want[$pid] = ($want[$pid] ?? 0) + $qty;
+}
+ksort($want);   // same lock order every time avoids deadlocks between two cashiers
+
+$pdo = db();
+try {
+    $pdo->beginTransaction();
+
+    $sel = $pdo->prepare("SELECT product_id, product_name, price_per_bottle, bottles_available
+                          FROM products WHERE product_id = ? AND is_active = 1 FOR UPDATE");
+    $lines = []; $total = 0.0;
+    foreach ($want as $pid => $qty) {
+        $sel->execute([$pid]);
+        $p = $sel->fetch();
+        if (!$p) { $pdo->rollBack(); json_out(['error' => 'A product in the cart is no longer available. Refresh and try again.'], 409); }
+        if ((int)$p['bottles_available'] < $qty) {
+            $pdo->rollBack();
+            json_out(['error' => "Only {$p['bottles_available']} bottle(s) of {$p['product_name']} left."], 409);
+        }
+        $price = (float)$p['price_per_bottle'];
+        $line  = round($price * $qty, 2);
+        $total += $line;
+        $lines[] = ['id' => (int)$p['product_id'], 'name' => $p['product_name'], 'qty' => $qty, 'price' => $price, 'line' => $line];
+    }
+    $total = round($total, 2);
+
+    // Save the sale (temporary receipt number, then the real one from the new id)
+    // FIXED: Changed $user['id'] to $user['user_id']
+    $pdo->prepare("INSERT INTO sales_record (receipt_no, user_id, total_amount) VALUES (?,?,?)")
+        ->execute(['TMP' . bin2hex(random_bytes(6)), $user['user_id'], $total]);
+        
+    $saleId  = (int)$pdo->lastInsertId();
+    $receipt = 'R' . str_pad((string)$saleId, 6, '0', STR_PAD_LEFT);
+    $pdo->prepare("UPDATE sales_record SET receipt_no = ? WHERE sale_id = ?")->execute([$receipt, $saleId]);
+
+    $ins = $pdo->prepare("INSERT INTO sales_record_items (sale_id, product_id, product_name, qty_bottles, unit_price, line_total) VALUES (?,?,?,?,?,?)");
+    $upd = $pdo->prepare("UPDATE products SET bottles_available = bottles_available - ? WHERE product_id = ? AND bottles_available >= ?");
+    foreach ($lines as $l) {
+        $ins->execute([$saleId, $l['id'], $l['name'], $l['qty'], $l['price'], $l['line']]);
+        $upd->execute([$l['qty'], $l['id'], $l['qty']]);
+        if ($upd->rowCount() !== 1) throw new RuntimeException('Stock changed during payment.');
+    }
+
+    $pdo->commit();
+    $sum = implode(', ', array_map(fn($l) => $l['qty'] . ' x ' . $l['name'], $lines));
+    log_activity('sale', "$receipt, total " . number_format($total) . ": $sum");
+    json_out(['ok' => true, 'sale_id' => $saleId, 'receipt_no' => $receipt, 'total' => $total]);
+
+} catch (Throwable $ex) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    json_out(['error' => 'Could not save the sale. Nothing was charged. Error: ' . $ex->getMessage()], 500);
+}
