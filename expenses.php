@@ -35,16 +35,63 @@ $canRecord = !$isAdmin;
         td { padding: 11px 12px; border-bottom: 1px solid var(--line); }
         .num { text-align: right; }
         .printonly { display: none; }
+
         @media(max-width: 640px) {
             main { padding: 0 12px; margin: 14px auto; gap: 14px; }
+            .head { flex-direction: column; align-items: stretch !important; gap: 10px; }
+            .head h2 { font-size: 1.1rem; }
+            .head .btn { width: 100%; padding: 12px; }
+            .grid { grid-template-columns: 1fr; gap: 12px; }
+            .grid > div { grid-column: auto !important; }
+            
             .rt thead { display: none; }
             .rt, .rt tbody, .rt tr, .rt td { display: block; width: 100%; }
-            .rt tr { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; padding: 6px 10px; }
-            .rt td { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; padding: 7px 2px; text-align: right; }
-            .rt td::before { content: attr(data-label); font-weight: 700; font-size: .68rem; text-transform: uppercase; color: var(--muted); text-align: left; }
-            .rt td[colspan]::before { content: none; } .rt td[colspan] { display: block; text-align: center; }
-            .grid > div { grid-column: auto !important; }
+            
+            /* Expense items */
+            .rt tbody tr { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; padding: 6px 10px; background: #f8fafc; }
+            .rt td { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; border: 0; border-bottom: 1px dashed #e2e8f0; padding: 8px 2px; text-align: right; }
+            .rt tbody td:last-child { border-bottom: 0; }
+            .rt td::before { content: attr(data-label); font-weight: 700; font-size: .68rem; text-transform: uppercase; color: var(--muted); text-align: left; flex-shrink: 0; }
+            .rt td[colspan]::before { content: none; } 
+            .rt td[colspan] { display: block; text-align: center; border-bottom: 0; }
+
+            /* Total Row Mobile Layout (Side-by-Side) */
+            .rt tfoot { display: block; width: 100%; }
+            .rt tfoot tr { 
+                display: flex; 
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                border: 1px solid var(--line); 
+                border-radius: 10px; 
+                background: #fff; 
+                padding: 16px 14px; 
+                margin-top: 10px;
+                width: 100%;
+            }
+            .rt tfoot td { 
+                border: 0; 
+                padding: 0; 
+                display: block;
+            }
+            .rt tfoot td[colspan] { 
+                display: block;
+                text-align: left;
+                font-weight: 700;
+                font-size: 0.85rem;
+                color: var(--slate);
+            }
+            .rt tfoot td.num { 
+                text-align: right; 
+                font-size: 1.3rem; 
+                font-weight: 800; 
+                color: var(--red);
+            }
+            .rt tfoot td.num::before {
+                content: none; /* Removes the previous custom label */
+            }
         }
+
         @media print {
             .sidebar, .mbar, .scrim, .noprint { display: none !important; }
             body { padding: 0 !important; background: #fff; } main { margin: 0; padding: 0; max-width: none; }
