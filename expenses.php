@@ -3,7 +3,6 @@ require __DIR__ . '/config.php';
 require_login(); 
 $active = 'expenses'; 
 $user = current_user();
-
 $isAdmin = $user['role'] === 'admin';
 $isManager = $user['role'] === 'manager';
 $canViewList = $isAdmin || $isManager;
@@ -14,12 +13,11 @@ $canRecord = !$isAdmin;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Expenses</title>
+    <title>Expenses & Department Tracking</title>
     <style>
-        /* CSS remains the same */
-        :root { --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0; --amber:#f59e0b; --green:#16a34a; --red:#dc2626; }
+        :root { --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0; --amber:#f59e0b; --green:#16a34a; --red:#dc2626; --blue:#2563eb; }
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);color: var(--navy); }
+        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); color: var(--navy); }
         main { max-width: 1000px; margin: 24px auto; padding: 0 18px; display: grid; gap: 20px; }
         .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
         .card h2 { margin: 0 0 14px; font-size: 1.05rem; }
@@ -64,11 +62,23 @@ $canRecord = !$isAdmin;
 <main>
     <?php if ($canRecord): ?>
     <div class="head noprint">
-        <h2>Record an Expense</h2>
+        <h2>Record an Expense by Department</h2>
     </div>
     <section class="card noprint">
         <div class="grid">
             <div><label>Expense Title</label><input id="eTitle" placeholder="e.g. Electricity Bill" autocomplete="off"></div>
+            <div>
+                <label>Department</label>
+                <select id="eDept">
+                    <option value="Administration">Administration</option>
+                    <option value="Bar & Beverage">Bar & Beverage</option>
+                    <option value="Kitchen">Kitchen</option>
+                    <option value="Lodge / Rooms">Lodge / Rooms</option>
+                    <option value="Ground Hire">Ground Hire</option>
+                    <option value="PA System">PA System</option>
+                    <option value="Maintenance">Maintenance</option>
+                </select>
+            </div>
             <div>
                 <label>Category</label>
                 <select id="eCat">
@@ -90,31 +100,31 @@ $canRecord = !$isAdmin;
 
     <?php if ($canViewList): ?>
         <div class="head noprint" style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-            <h2>Today's Expenses (<?= date('d M Y') ?>)</h2>
+            <h2>Today's Expenses & Net Impact (<?= date('d M Y') ?>)</h2>
             <button class="btn dark" onclick="window.print()">Export to PDF</button>
         </div>
         
-        <p class="printonly" style="color:#64748b; font-size:0.85rem; margin-bottom:10px;">Expenses Report Generated: <?= date('d M Y, h:i A') ?> by <?= e($user['name']) ?></p>
-
+        <p class="printonly" style="color:#64748b; font-size:0.85rem; margin-bottom:10px;">Expenses Report Generated: <?= date('d M Y, h:i A') ?> by <?= e($user['name'] ?? $user['username'] ?? 'Staff') ?></p>
         <section class="card">
             <div class="tablewrap">
                 <table class="rt">
                     <thead>
                         <tr>
                             <th>Time</th>
-                            <th>Title / Category</th>
+                            <th>Department / Title</th>
+                            <th>Category</th>
                             <th>Description</th>
                             <th>Recorded By</th>
                             <th class="num">Amount (<?= CURRENCY ?>)</th>
                         </tr>
                     </thead>
                     <tbody id="tbody">
-                        <tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">Loading...</td></tr>
+                        <tr><td colspan="6" style="text-align:center; padding:20px; color:#64748b;">Loading...</td></tr>
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="4" style="text-align:right; font-weight:bold;">Total Expenses Today:</td>
-                            <td class="num" style="font-weight:bold; font-size:1.1rem;" id="tTotal">0</td>
+                            <td colspan="5" style="text-align:right; font-weight:bold;">Total Expenses Today:</td>
+                            <td class="num" style="font-weight:bold; font-size:1.1rem; color:var(--red);" id="tTotal">0</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -122,7 +132,6 @@ $canRecord = !$isAdmin;
         </section>
     <?php endif; ?>
 </main>
-
 <script>
 const CSRF = <?= json_encode(csrf_token()) ?>;
 const CAN_VIEW_LIST = <?= $canViewList ? 'true' : 'false' ?>;
@@ -130,15 +139,52 @@ const CUR = <?= json_encode(CURRENCY) ?>;
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n).toLocaleString();
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
 const apiUrl = './api/expenses.php';
+
+// Global scope definition for loadToday so it's always accessible
+const localTime = (dateStr) => {
+    const d = new Date(dateStr.replace(' ', 'T'));
+    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
+const loadToday = async () => {
+    if (!CAN_VIEW_LIST) return;
+    try {
+        const res = await fetch(apiUrl + '?action=list');
+        const r = await res.json();
+        if (r.error) return;
+        
+        $('tTotal').textContent = CUR + ' ' + fmt(r.total);
+        
+        if (!r.rows.length) {
+            $('tbody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#64748b;">No expenses recorded today yet.</td></tr>';
+            return;
+        }
+        
+        $('tbody').innerHTML = r.rows.map(x => `
+            <tr>
+                <td data-label="Time">${localTime(x.created_at)}</td>
+                <td data-label="Department / Title"><span style="font-size:0.75rem; font-weight:700; color:var(--blue); text-transform:uppercase;">${esc(x.department)}</span><br><b>${esc(x.title)}</b></td>
+                <td data-label="Category">${esc(x.category)}</td>
+                <td data-label="Description">${esc(x.description || '—')}</td>
+                <td data-label="Recorded By">${esc(x.recorded_by_name)}</td>
+                <td class="num" data-label="Amount"><b style="color:var(--red);">${CUR} ${fmt(x.amount)}</b></td>
+            </tr>
+        `).join('');
+    } catch(e) {
+        console.error(e);
+    }
+};
 
 if (document.getElementById('eSave')) {
     const hint = (t, k = '') => { $('eHint').textContent = t; $('eHint').className = 'hint ' + k; };
-
     $('eSave').onclick = async () => {
         const body = {
-            title: $('eTitle').value, category: $('eCat').value, amount: $('eAmt').value, description: $('eDesc').value
+            title: $('eTitle').value, 
+            department: $('eDept').value, 
+            category: $('eCat').value, 
+            amount: $('eAmt').value, 
+            description: $('eDesc').value
         };
         $('eSave').disabled = true; $('eSave').textContent = 'Saving...';
         hint(''); 
@@ -170,32 +216,6 @@ if (document.getElementById('eSave')) {
 }
 
 if (CAN_VIEW_LIST) {
-    const localTime = (dateStr) => {
-        const d = new Date(dateStr.replace(' ', 'T'));
-        return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
-    };
-
-    const loadToday = async () => {
-        const r = await (await fetch(apiUrl + '?action=list')).json();
-        if (r.error) return;
-        
-        $('tTotal').textContent = CUR + ' ' + fmt(r.total);
-        
-        if (!r.rows.length) {
-            $('tbody').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#64748b;">No expenses recorded today yet.</td></tr>';
-            return;
-        }
-        
-        $('tbody').innerHTML = r.rows.map(x => `
-            <tr>
-                <td data-label="Time">${localTime(x.created_at)}</td>
-                <td data-label="Title / Category"><b>${esc(x.title)}</b><br><span style="font-size:0.8rem;color:#64748b;">${esc(x.category)}</span></td>
-                <td data-label="Description">${esc(x.description || '—')}</td>
-                <td data-label="Recorded By">${esc(x.recorded_by_name)}</td>
-                <td class="num" data-label="Amount"><b>${CUR} ${fmt(x.amount)}</b></td>
-            </tr>
-        `).join('');
-    };
     loadToday();
 }
 </script>
