@@ -30,6 +30,9 @@ $pRes = $pQuery->fetch();
 $totalProfit = (float)($pRes['profit'] ?? 0);
 $totalLoss = (float)($pRes['loss'] ?? 0);
 
+// Calculate Net Profit (Gross Sales Profit minus Expenses)
+$netProfit = $totalProfit - $totalExp;
+
 // Top Selling Products breakdown
 $topProducts = $pdo->prepare("SELECT i.product_name, SUM(i.qty_bottles) as qty, SUM(i.line_total) as revenue 
     FROM sales_record_items i 
@@ -71,8 +74,8 @@ $money = fn($n) => number_format((float)$n);
         .tile b { display: block; font-size: 1.4rem; margin-top: 4px; }
         .tile.money { border-color: var(--green); }
         .tile.profit { border-color: var(--blue); }
-        .tile.loss { border-color: var(--red); }
-        .tile.spend { border-color: var(--amber); }
+        .tile.net { border-color: var(--green); }
+        .tile.spend { border-color: var(--red); }
 
         /* Chart Grid Layout */
         .chart-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
@@ -141,50 +144,55 @@ $money = fn($n) => number_format((float)$n);
             <small>Gross Profit on Sales</small>
             <b style="color:var(--blue);"><?= CURRENCY ?> <?= $money($totalProfit) ?></b>
         </div>
-        <div class="tile loss">
-            <small>Losses on Sales</small>
-            <b style="color:var(--red);"><?= CURRENCY ?> <?= $money($totalLoss) ?></b>
-        </div>
         <div class="tile spend">
             <small>Operating Expenses</small>
-            <b><?= CURRENCY ?> <?= $money($totalExp) ?></b>
+            <b style="color:var(--red);"><?= CURRENCY ?> <?= $money($totalExp) ?></b>
+        </div>
+        <div class="tile net">
+            <small>Net Profit (After Expenses)</small>
+            <b style="color:var(--green);"><?= CURRENCY ?> <?= $money($netProfit) ?></b>
         </div>
     </section>
 
     <!-- Individual Charts Grid -->
     <section class="chart-container">
         
-        <!-- CHART 1: Profit vs Loss Ratio -->
+        <!-- CHART 1: Gross Profit vs Expenses Impact -->
         <?php 
-        $totalPL = $totalProfit + $totalLoss;
-        $profitPct = $totalPL > 0 ? ($totalProfit / $totalPL) * 100 : 100;
-        $lossPct = $totalPL > 0 ? ($totalLoss / $totalPL) * 100 : 0;
-        $conicPL = "conic-gradient(#2563eb 0% {$profitPct}%, #dc2626 {$profitPct}% 100%)";
+        // Compare Gross Profit against Expenses to evaluate net bottom-line health
+        $baseScale = max($totalProfit, $totalExp, 1);
+        $profitBarPct = ($totalProfit / $baseScale) * 100;
+        $expBarPct = ($totalExp / $baseScale) * 100;
+
+        // For Conic ratio calculation (Gross Profit vs Expenses)
+        $plTotal = max($totalProfit + $totalExp, 1);
+        $profitShare = ($totalProfit / $plTotal) * 100;
+        $expShare = ($totalExp / $plTotal) * 100;
+        $conicPL = "conic-gradient(#2563eb 0% {$profitShare}%, #dc2626 {$profitShare}% 100%)";
         ?>
         <div class="chart-box">
-            <div class="chart-title">1. Profit vs. Loss on Sales</div>
+            <div class="chart-title">1. Gross Profit vs. Expenses Impact</div>
             <div class="pie-chart" style="background: <?= $conicPL ?>;">
-                <div class="pie-hole"><b>P / L</b><br><?= round($profitPct, 1) ?>% Profit</div>
+                <div class="pie-hole"><b>Net</b><br><?= $money($netProfit) ?></div>
             </div>
             <div class="legend">
                 <div class="legend-row">
-                    <div class="legend-item"><div class="legend-dot" style="background:#2563eb;"></div> Gross Profit</div>
-                    <span><?= CURRENCY ?> <?= $money($totalProfit) ?> (<?= round($profitPct, 1) ?>%)</span>
+                    <div class="legend-item"><div class="legend-dot" style="background:#2563eb;"></div> Gross Sales Profit</div>
+                    <span><?= CURRENCY ?> <?= $money($totalProfit) ?></span>
                 </div>
                 <div class="legend-row">
-                    <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Sales Loss</div>
-                    <span><?= CURRENCY ?> <?= $money($totalLoss) ?> (<?= round($lossPct, 1) ?>%)</span>
+                    <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Operating Expenses</div>
+                    <span><?= CURRENCY ?> <?= $money($totalExp) ?></span>
                 </div>
             </div>
             <div class="interpretation">
-                <b>Interpretation:</b> Demonstrates the health of your inventory sales margins. <?php if($totalLoss == 0): ?>Zero losses recorded; all items sold at a positive markup margin.<?php else: ?>Some items incurred negative margins (sold below buying price).<?php endif; ?>
+                <b>Interpretation:</b> Evaluates how operating expenses weigh against your inventory sales earnings. Your net profit after expenses stands at <b><?= CURRENCY ?> <?= $money($netProfit) ?></b>.
             </div>
         </div>
 
         <!-- CHART 2: Top Selling Products Share -->
         <?php 
         $topRevTotal = array_sum(array_column($topProductsList, 'revenue'));
-        // Colors palette for top products
         $prodColors = ['#16a34a', '#2563eb', '#f59e0b', '#8b5cf6', '#dc2626'];
         $currentDeg = 0;
         $conicParts = [];

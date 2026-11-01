@@ -95,7 +95,9 @@ $money = fn($n) => number_format((float)$n);
             <small>Expenses Today</small><b><?= $money($expensesToday) ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile net link" href="sales_report.php?period=today">
-            <small>Net Profit Today</small><b style="color:#16a34a;"><?= $money($netProfitToday) ?></b><span class="more">View details &rarr;</span>
+            <small>Net Profit Today</small>
+            <b style="color: <?= $netProfitToday < 0 ? '#b91c1c' : '#16a34a' ?>; font-weight: <?= $netProfitToday < 0 ? '800' : '700' ?>;"><?= $money($netProfitToday) ?></b>
+            <span class="more">View details &rarr;</span>
         </a>
         <a class="tile money link" href="room_collection.php?period=today">
             <small>Rooms Collection Today</small><b><?= $money($roomsToday) ?></b><span class="more">View details &rarr;</span>
@@ -119,7 +121,9 @@ $money = fn($n) => number_format((float)$n);
             <small>Expenses This Month</small><b><?= $money($expensesMonth) ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile net link" href="sales_report.php?period=month">
-            <small>Net Profit This Month</small><b style="color:#16a34a;"><?= $money($netProfitMonth) ?></b><span class="more">View details &rarr;</span>
+            <small>Net Profit This Month</small>
+            <b style="color: <?= $netProfitMonth < 0 ? '#b91c1c' : '#16a34a' ?>; font-weight: <?= $netProfitMonth < 0 ? '800' : '700' ?>;"><?= $money($netProfitMonth) ?></b>
+            <span class="more">View details &rarr;</span>
         </a>
         <a class="tile money link" href="room_collection.php?period=month">
             <small>Rooms Collection This Month</small><b><?= $money($roomsMonth) ?></b><span class="more">View details &rarr;</span>

@@ -33,20 +33,58 @@ try {
                 ORDER BY last_activity DESC
             ")->fetchAll();
             
-            // Fetch real location based on IP
+            // --- UPDATED LOCATION LOGIC HERE ---
+            // We use a static array to cache results in memory. 
+            // If 5 people share the same IP, we only call the API once.
+            $locationCache = [];
             foreach ($sessions as &$s) {
                 $ip = $s['ip_address'];
                 
-                // Get the real location (City, Region, Country)
-                $location = get_ip_location($ip);
-                
-                if ($location === 'Local Network') {
-                    $s['location'] = 'Local Network';
-                } else {
-                    // ONLY the location, no IP address added
-                    $s['location'] = $location;
+                // Check cache first
+                if (isset($locationCache[$ip])) {
+                    $s['location'] = $locationCache[$ip];
+                    continue;
                 }
+
+                // If local network, skip API
+                if ($ip === '127.0.0.1' || $ip === '::1' || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {
+                    $s['location'] = 'Local Network';
+                    $locationCache[$ip] = 'Local Network';
+                    continue;
+                }
+
+                // Setup the HTTP context for a quick API call
+                $context = stream_context_create([
+                    'http' => [
+                        'timeout' => 1.5, // Shorter timeout so it doesn't freeze the page
+                        'header'  => "User-Agent: BigWallet/1.0\r\n"
+                    ]
+                ]);
+
+                // Try ip-api.com
+                $response = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,country,regionName,city,district", false, $context);
+                
+                if ($response) {
+                    $data = json_decode($response, true);
+                    if (isset($data['status']) && $data['status'] === 'success') {
+                        $parts = array_filter([
+                            $data['city']       ?? '',
+                            $data['district']   ?? '',
+                            $data['regionName'] ?? '',
+                            $data['country']    ?? ''
+                        ]);
+                        $s['location'] = $parts ? implode(', ', array_unique($parts)) : 'Unknown Location';
+                    } else {
+                        $s['location'] = 'IP: ' . e($ip); // Fallback
+                    }
+                } else {
+                    $s['location'] = 'IP: ' . e($ip); // Fallback
+                }
+                
+                // Save to cache so we don't call the API again for this IP on this page load
+                $locationCache[$ip] = $s['location'];
             }
+            // -----------------------------------
             
             json_out($sessions);
             break;
@@ -76,7 +114,104 @@ try {
             json_out(['ok' => true, 'message' => "$target has been logged out successfully."]);
             break;
 
-        // ... (keep your create, toggle, approve_reset, reject_reset, delete, reset_system cases here) ...
+        case 'create':
+            if (!in_array($user['role'], ['hr', 'admin'])) json_out(['error' => 'Only HR can create users.'], 403);
+
+            $name = trim($in['full_name'] ?? '');
+            $uname = trim($in['username'] ?? '');
+            $pass = (string)($in['password'] ?? '');
+            $role = $in['role'] ?? '';
+            
+            if (mb_strlen($name) < 2 || mb_strlen($name) > 100) json_out(['error' => 'Enter the full name.'], 422);
+            if (!preg_match('/^[A-Za-z0-9_\.]{3,30}$/', $uname)) json_out(['error' => 'Username: 3 to 30 letters, numbers, dot or underscore.'], 422);
+            if (strlen($pass) < 8) json_out(['error' => 'Password must be at least 8 characters.'], 422);
+            if (!in_array($role, ['admin', 'cashier', 'manager', 'hr'], true)) json_out(['error' => 'Choose a valid role.'], 422);
+            
+            $pdo->prepare("INSERT INTO users (full_name, username, password_hash, role) VALUES (?,?,?,?)")
+                ->execute([$name, $uname, password_hash($pass, PASSWORD_DEFAULT), $role]);
+            log_activity('account_create', "$name ($role)");
+            json_out(['ok' => true, 'message' => "Account '$name' created."]);
+            break;
+
+        case 'toggle':
+            $id = (int)($in['user_id'] ?? 0);
+            if ($id === (int)$user['user_id']) json_out(['error' => 'You cannot disable your own account.'], 422);
+            
+            $t = $pdo->prepare("SELECT username, is_active, role FROM users WHERE user_id = ?");
+            $t->execute([$id]);
+            $row = $t->fetch();
+            if (!$row) json_out(['error' => 'Account not found.'], 404);
+            
+            if ($user['role'] === 'admin' && $row['role'] === 'hr') {
+                json_out(['error' => 'Admins cannot disable HR accounts.'], 403);
+            }
+            
+            $pdo->prepare("UPDATE users SET is_active = 1 - is_active WHERE user_id = ?")->execute([$id]);
+            log_activity($row['is_active'] ? 'account_disabled' : 'account_enabled', "Account: {$row['username']}");
+            json_out(['ok' => true]);
+            break;
+
+        case 'approve_reset':
+            if ($user['role'] !== 'hr') json_out(['error' => 'Only HR can approve password resets.'], 403);
+            
+            $id = (int)($in['user_id'] ?? 0);
+            $t = $pdo->prepare("SELECT username, pending_password_hash FROM users WHERE user_id = ?");
+            $t->execute([$id]);
+            $row = $t->fetch();
+            if (!$row) json_out(['error' => 'User not found.'], 404);
+            if (!$row['pending_password_hash']) json_out(['error' => 'No pending password request for this user.'], 400);
+
+            $pdo->prepare("UPDATE users SET password_hash = pending_password_hash, pending_password_hash = NULL WHERE user_id = ?")->execute([$id]);
+            log_activity('password_approved', "Password reset approved for {$row['username']}");
+            json_out(['ok' => true, 'message' => 'Password updated successfully.']);
+            break;
+
+        case 'reject_reset':
+            if ($user['role'] !== 'hr') json_out(['error' => 'Only HR can reject password resets.'], 403);
+
+            $id = (int)($in['user_id'] ?? 0);
+            $t = $pdo->prepare("SELECT username, pending_password_hash FROM users WHERE user_id = ?");
+            $t->execute([$id]);
+            $row = $t->fetch();
+            if (!$row) json_out(['error' => 'User not found.'], 404);
+
+            $pdo->prepare("UPDATE users SET pending_password_hash = NULL WHERE user_id = ?")->execute([$id]);
+            log_activity('password_rejected', "Password reset rejected for {$row['username']}");
+            json_out(['ok' => true, 'message' => 'Password request rejected.']);
+            break;
+
+        case 'delete':
+            $id = (int)($in['user_id'] ?? 0);
+            if ($id === (int)$user['user_id']) json_out(['error' => 'You cannot delete your own account.'], 422);
+            
+            $nm = $pdo->prepare("SELECT username, role FROM users WHERE user_id = ?");
+            $nm->execute([$id]);
+            $targetUser = $nm->fetch();
+            if (!$targetUser) json_out(['error' => 'Account not found.'], 404);
+
+            if ($user['role'] === 'admin' && $targetUser['role'] === 'hr') {
+                json_out(['error' => 'Admins cannot delete HR accounts.'], 403);
+            }
+
+            try {
+                $st = $pdo->prepare("DELETE FROM users WHERE user_id = ?");
+                $st->execute([$id]);
+            } catch (PDOException $ex) {
+                json_out(['error' => 'This account has stock, sales or room records and cannot be deleted. Disable it instead.'], 409);
+            }
+            
+            if ($st->rowCount()) log_activity('account_delete', "Account: {$targetUser['username']} (Role: {$targetUser['role']})");
+            json_out($st->rowCount() ? ['ok' => true, 'message' => 'Account deleted.'] : ['error' => 'Account not found.'], $st->rowCount() ? 200 : 404);
+            break;
+
+        case 'reset_system':
+            if ($user['role'] !== 'hr') json_out(['error' => 'Only the HR administrator can reset the database.'], 403);
+            $tables = ['sales_record_items','sales_record','room_payments','room_bookings','rooms','expenses','stock_entries','products','activity_log','login_sessions'];
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
+            foreach ($tables as $t) $pdo->exec("TRUNCATE TABLE `$t`;");
+            $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
+            json_out(['ok' => true, 'message' => 'System reset successfully.']);
+            break;
 
         default:
             json_out(['error' => 'Unknown action.'], 400);
@@ -84,40 +219,5 @@ try {
 } catch (PDOException $ex) {
     if ($ex->getCode() === '23000') json_out(['error' => 'That username is already taken.'], 409);
     json_out(['error' => 'Database error: ' . $ex->getMessage()], 500);
-}
-
-/**
- * Fetch real location from IP address
- */
-function get_ip_location(string $ip): string {
-    if ($ip === '127.0.0.1' || $ip === '::1' || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {
-        return 'Local Network';
-    }
-
-    $context = stream_context_create(['http' => ['timeout' => 2, 'header' => "User-Agent: BigWallet/1.0\r\n"]]);
-
-    $response = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,country,regionName,city,district", false, $context);
-
-    if ($response) {
-        $data = json_decode($response, true);
-        if (isset($data['status']) && $data['status'] === 'success') {
-            $parts = array_filter([
-                $data['city']       ?? '',
-                $data['regionName'] ?? '',
-                $data['country']    ?? ''
-            ]);
-            if ($parts) return implode(', ', array_unique($parts));
-        }
-    }
-
-    $fallback = @file_get_contents("https://ipapi.co/{$ip}/json/", false, $context);
-    if ($fallback) {
-        $data = json_decode($fallback, true);
-        if (!empty($data['city']) || !empty($data['country_name'])) {
-            return implode(', ', array_filter([$data['city'] ?? '', $data['country_name'] ?? '']));
-        }
-    }
-
-    return 'Location Unavailable';
 }
 ?>

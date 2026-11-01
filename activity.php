@@ -97,56 +97,6 @@ function device(string $ua): string {
     return "$br on $os";
 }
 
-// Geolocation helper function
-function get_ip_location(string $ip): string {
-    if ($ip === '127.0.0.1' || $ip === '::1' || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {
-        return 'Local Network';
-    }
-
-    $context = stream_context_create([
-        'http' => [
-            'timeout' => 2,
-            'header'  => "User-Agent: BigWallet/1.0\r\n"
-        ]
-    ]);
-
-    $response = @file_get_contents(
-        "http://ip-api.com/json/{$ip}?fields=status,country,countryCode,regionName,city,district",
-        false,
-        $context
-    );
-
-    if ($response) {
-        $data = json_decode($response, true);
-        if (isset($data['status']) && $data['status'] === 'success') {
-            $parts = array_filter([
-                $data['city']       ?? '',
-                $data['district']   ?? '',
-                $data['regionName'] ?? '',
-                $data['country']    ?? ''
-            ]);
-            if ($parts) {
-                return implode(', ', array_unique($parts));
-            }
-        }
-    }
-
-    $fallback = @file_get_contents("https://ipapi.co/{$ip}/json/", false, $context);
-    if ($fallback) {
-        $data = json_decode($fallback, true);
-        if (!empty($data['city']) || !empty($data['region']) || !empty($data['country_name'])) {
-            $parts = array_filter([
-                $data['city']         ?? '',
-                $data['region']       ?? '',
-                $data['country_name'] ?? ''
-            ]);
-            if ($parts) return implode(', ', $parts);
-        }
-    }
-
-    return 'Location Unavailable';
-}
-
 function dur(int $m): string { 
     return $m < 1 ? 'under 1 min' : ($m < 60 ? "{$m}m" : intdiv($m, 60) . 'h ' . ($m % 60) . 'm'); 
 }
@@ -366,7 +316,8 @@ td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
                                     <td data-label="Duration"><?= e(dur((int)$r['dur_min'])) ?></td>
                                     <td data-label="Device"><?= e(device((string)$r['user_agent'])) ?></td>
                                     <td data-label="Location">
-                                        <span style="font-weight: 600;"><?= e(get_ip_location($r['ip_address'])) ?></span><br>
+                                        <!-- Read from database instead of live API -->
+                                        <span style="font-weight: 600;"><?= e($r['location'] ?? 'Unknown') ?></span><br>
                                         <small class="muted">IP: <?= e($r['ip_address']) ?></small>
                                     </td>
                                     <td data-label="Status"><span class="badge <?= $st[1] ?>"><?= $st[0] ?></span></td>
@@ -387,7 +338,8 @@ td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
                                     <td data-label="Action"><span class="badge b-<?= $l[1] ?>"><?= e($l[0]) ?></span></td>
                                     <td data-label="Details"><?= e($r['details']) ?></td>
                                     <td data-label="Location">
-                                        <span style="font-weight: 600;"><?= e(get_ip_location($r['ip_address'])) ?></span><br>
+                                        <!-- Read from database instead of live API -->
+                                        <span style="font-weight: 600;"><?= e($r['location'] ?? 'Unknown') ?></span><br>
                                         <small class="muted">IP: <?= e($r['ip_address']) ?></small>
                                     </td>
                                 </tr>

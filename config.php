@@ -127,10 +127,66 @@ function require_manager(): void {
 /* --------- Login session tracking + activity log --------- */
 function client_ip(): string { return substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45); }
 
+// --- ADDED LOCATION HELPER FUNCTION HERE ---
+function get_ip_location(string $ip): string {
+    if ($ip === '127.0.0.1' || $ip === '::1' || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {
+        return 'Local Network';
+    }
+
+    $context = stream_context_create([
+        'http' => [
+            'timeout' => 2,
+            'header'  => "User-Agent: BigWallet/1.0\r\n"
+        ]
+    ]);
+
+    // Try ip-api.com first
+    $response = @file_get_contents(
+        "http://ip-api.com/json/{$ip}?fields=status,country,regionName,city,district", 
+        false, 
+        $context
+    );
+
+    if ($response) {
+        $data = json_decode($response, true);
+        if (isset($data['status']) && $data['status'] === 'success') {
+            $parts = array_filter([
+                $data['city']       ?? '',
+                $data['district']   ?? '',
+                $data['regionName'] ?? '',
+                $data['country']    ?? ''
+            ]);
+            if ($parts) {
+                return implode(', ', array_unique($parts));
+            }
+        }
+    }
+
+    // Fallback: try ipapi.co
+    $fallback = @file_get_contents("https://ipapi.co/{$ip}/json/", false, $context);
+    if ($fallback) {
+        $data = json_decode($fallback, true);
+        if (!empty($data['city']) || !empty($data['region']) || !empty($data['country_name'])) {
+            $parts = array_filter([
+                $data['city']         ?? '',
+                $data['region']       ?? '',
+                $data['country_name'] ?? ''
+            ]);
+            if ($parts) return implode(', ', $parts);
+        }
+    }
+
+    return 'Unknown Location';
+}
+// ------------------------------------------
+
 function start_login_session(array $u): void {
     try {
-        db()->prepare("INSERT INTO login_sessions (user_id, username, ip_address, user_agent) VALUES (?,?,?,?)")
-            ->execute([(int)$u['user_id'], $u['username'], client_ip(), substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255)]);
+        $ip = client_ip();
+        $location = get_ip_location($ip); // Calculate location ONLY once at login
+        
+        db()->prepare("INSERT INTO login_sessions (user_id, username, ip_address, user_agent, location) VALUES (?,?,?,?,?)")
+            ->execute([(int)$u['user_id'], $u['username'], $ip, substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255), $location]);
         $_SESSION['sess_id'] = (int)db()->lastInsertId();
         $_SESSION['touched'] = time();
     } catch (Throwable $e) {}

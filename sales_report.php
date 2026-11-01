@@ -141,7 +141,10 @@ tfoot td{font-weight:800;border-top:2px solid var(--navy);border-bottom:0;backgr
     <div class="tile money"><small>Total Sales (<?= CURRENCY ?>)</small><b><?= $n($total) ?></b></div>
     <div class="tile profit"><small>Gross Profit (<?= CURRENCY ?>)</small><b style="color:#2563eb;"><?= $n($totalProfit) ?></b></div>
     <div class="tile expense"><small>Total Expenses (<?= CURRENCY ?>)</small><b style="color:var(--red);"><?= $n($totalExpenses) ?></b></div>
-    <div class="tile net"><small>Net Profit (<?= CURRENCY ?>)</small><b style="color:var(--green);"><?= $n($netProfit) ?></b></div>
+    <div class="tile net">
+      <small>Net Profit (<?= CURRENCY ?>)</small>
+      <b style="color: <?= $netProfit < 0 ? '#b91c1c' : 'var(--green)' ?>; font-weight: <?= $netProfit < 0 ? '800' : '700' ?>;"><?= $n($netProfit) ?></b>
+    </div>
     <div class="tile"><small>Receipts</small><b><?= count($receipts) ?></b></div>
     <div class="tile"><small>Bottles Sold</small><b><?= $n($bottles) ?></b></div>
   </section>
@@ -149,11 +152,11 @@ tfoot td{font-weight:800;border-top:2px solid var(--navy);border-bottom:0;backgr
     <section class="card"><div class="empty">No sales recorded for this period yet.</div></section>
   <?php else: ?>
   <section class="card">
-    <h3>Where the money came from & profit breakdown from sales (by item)</h3>
+    <h3>Where the money came from &amp; profit breakdown from sales (by item)</h3>
     <div class="tablewrap"><table class="rt">
       <thead><tr><th>Item</th><th class="num">Bottles</th><th class="num">Amount (<?= CURRENCY ?>)</th><th class="num">Profit (<?= CURRENCY ?>)</th><th class="num">Share</th></tr></thead>
       <tbody>
-      <?php foreach ($byItem as $name => $v): $pct = $total > 0 ? $v['amount'] / $total * 100 : 0; ?>
+      <?php foreach ($byItem as $name => $v): $pct = $total > 0 ? ($v['amount'] / $total) * 100 : 0; ?>
         <tr><td data-label="Item"><b><?= e($name) ?></b><div class="bar noprint"><i style="width:<?= round($pct) ?>%"></i></div></td>
             <td class="num" data-label="Bottles"><?= $n($v['qty']) ?></td>
             <td class="num" data-label="Amount"><?= $n($v['amount']) ?></td>
