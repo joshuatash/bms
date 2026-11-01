@@ -21,8 +21,10 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') ==
     } elseif (!in_array($scope, ['activity', 'sessions', 'both'], true) || !in_array($range, ['all', '30', '90'], true)) {
         $resetError = 'Choose what to clear.';
     } else {
+        $currentUserId = current_user()['user_id'] ?? current_user()['id'] ?? 0;
+
         $ps = $pdo->prepare("SELECT password_hash FROM users WHERE user_id = ?");
-        $ps->execute([current_user()['id']]);
+        $ps->execute([$currentUserId]);
         $hash = (string)$ps->fetchColumn();
 
         if (!$hash || !password_verify((string)($_POST['password'] ?? ''), $hash)) {
@@ -41,8 +43,8 @@ if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') ==
                                             . ($days ? " AND login_time < NOW() - INTERVAL $days DAY" : ''));
                 }
                 $pdo->commit();
-                log_activity('activity_reset', "Cleared $nAct activity record(s) and $nSes login session(s)" . ($days ? " older than $days days" : ' (everything)'));
-                $_SESSION['flash_activity'] = "Done. Removed $nAct activity record(s) and $nSes login session(s). (The reset itself is logged, and anyone signed in right now is kept.)";
+                log_activity('activity_reset', "Cleared $nAct activity record(s) and $nSes login session(s)");
+                $_SESSION['flash_activity'] = "Done. Removed $nAct activity record(s) and $nSes login session(s).";
                 header('Location: activity.php?view=' . $backView);
                 exit;
             } catch (PDOException $ex) {
@@ -93,6 +95,56 @@ function device(string $ua): string {
           (preg_match('/Firefox/i', $ua) ? 'Firefox' : (preg_match('/Chrome/i', $ua) ? 'Chrome' : 
           (preg_match('/Safari/i', $ua) ? 'Safari' : 'Browser'))));
     return "$br on $os";
+}
+
+// Geolocation helper function
+function get_ip_location(string $ip): string {
+    if ($ip === '127.0.0.1' || $ip === '::1' || str_starts_with($ip, '192.168.') || str_starts_with($ip, '10.')) {
+        return 'Local Network';
+    }
+
+    $context = stream_context_create([
+        'http' => [
+            'timeout' => 2,
+            'header'  => "User-Agent: BigWallet/1.0\r\n"
+        ]
+    ]);
+
+    $response = @file_get_contents(
+        "http://ip-api.com/json/{$ip}?fields=status,country,countryCode,regionName,city,district",
+        false,
+        $context
+    );
+
+    if ($response) {
+        $data = json_decode($response, true);
+        if (isset($data['status']) && $data['status'] === 'success') {
+            $parts = array_filter([
+                $data['city']       ?? '',
+                $data['district']   ?? '',
+                $data['regionName'] ?? '',
+                $data['country']    ?? ''
+            ]);
+            if ($parts) {
+                return implode(', ', array_unique($parts));
+            }
+        }
+    }
+
+    $fallback = @file_get_contents("https://ipapi.co/{$ip}/json/", false, $context);
+    if ($fallback) {
+        $data = json_decode($fallback, true);
+        if (!empty($data['city']) || !empty($data['region']) || !empty($data['country_name'])) {
+            $parts = array_filter([
+                $data['city']         ?? '',
+                $data['region']       ?? '',
+                $data['country_name'] ?? ''
+            ]);
+            if ($parts) return implode(', ', $parts);
+        }
+    }
+
+    return 'Location Unavailable';
 }
 
 function dur(int $m): string { 
@@ -199,7 +251,7 @@ td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 .printonly{display:none}
 .warn{background:#fef3c7;color:#92400e;padding:16px;border-radius:10px;line-height:1.6}
 
-/* reset window */
+/* modal styling */
 .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;place-items:center;z-index:60;padding:12px}
 .modal.open{display:grid}
 .modal .box{background:#fff;border-radius:14px;padding:24px;width:min(440px,100%);max-height:94vh;overflow:auto}
@@ -209,31 +261,22 @@ td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 .modal .err{color:var(--red);font-weight:600;font-size:.88rem;min-height:1.2em}
 .modal .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
 
-/* --- SMALL PHONE RESPONSIVENESS --- */
 @media(max-width: 640px) {
     main { padding: 0 12px; margin: 14px auto; gap: 14px; }
     .head { flex-direction: column; align-items: stretch; text-align: center; }
     .acts { width: 100%; } .acts .btn { flex: 1; padding: 14px; font-size: 1rem; }
-    
-    /* Stack the filter form */
     .filters { grid-template-columns: 1fr; }
     .filters .btn { width: 100%; padding: 12px; }
-    
-    /* Stats */
     .tiles { grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .tile { padding: 12px; text-align: center; }
     .tile b { font-size: 1.3rem; }
     .tile small { font-size: 0.65rem; line-height: 1.1; display: block; margin-bottom: 4px; }
-    
-    /* Turn Tables into Cards */
     .rt thead { display: none; }
     .rt, .rt tbody, .rt tr, .rt td { display: block; width: 100%; }
     .rt tr { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; padding: 8px 12px; background: #f8fafc; }
     .rt td { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; border-bottom: 1px solid #f1f5f9; padding: 8px 2px; text-align: right; }
     .rt td:last-child { border-bottom: 0; padding-bottom: 0; }
     .rt td::before { content: attr(data-label); font-weight: 700; font-size: .68rem; text-transform: uppercase; color: var(--muted); text-align: left; flex-shrink: 0; }
-    .rt td[colspan]::before { content: none; } .rt td[colspan] { display: block; text-align: center; }
-    
     .pager { flex-direction: column; gap: 10px; text-align: center; }
 }
 
@@ -250,7 +293,7 @@ td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <div class="head">
-        <div><h2>Sessions &amp; Activity</h2><p>Who logged in, when, and what they did</p></div>
+        <div><h2>Sessions &amp; Activity</h2><p>Who logged in, when, and where they connected from</p></div>
         <p class="printonly muted">Generated <?= date('d M Y, h:i A') ?></p>
         <div class="acts noprint">
             <button class="btn primary" onclick="window.print()">Export to PDF</button>
@@ -308,7 +351,7 @@ td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
             <?php elseif ($view === 'sessions'): ?>
                 <div class="tablewrap">
                     <table class="rt">
-                        <thead><tr><th>User</th><th>Logged in</th><th>Last activity</th><th>Logged out</th><th>Duration</th><th>Device</th><th>IP</th><th>Status</th></tr></thead>
+                        <thead><tr><th>User</th><th>Logged in</th><th>Last activity</th><th>Logged out</th><th>Duration</th><th>Device</th><th>Location</th><th>Status</th></tr></thead>
                         <tbody>
                             <?php foreach ($rows as $r): 
                                 if ($r['logout_time']) { $st = ['Logged out', 's-out']; } 
@@ -322,7 +365,10 @@ td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
                                     <td data-label="Logged out"><?= when($r['logout_time']) ?></td>
                                     <td data-label="Duration"><?= e(dur((int)$r['dur_min'])) ?></td>
                                     <td data-label="Device"><?= e(device((string)$r['user_agent'])) ?></td>
-                                    <td data-label="IP"><?= e($r['ip_address']) ?></td>
+                                    <td data-label="Location">
+                                        <span style="font-weight: 600;"><?= e(get_ip_location($r['ip_address'])) ?></span><br>
+                                        <small class="muted">IP: <?= e($r['ip_address']) ?></small>
+                                    </td>
                                     <td data-label="Status"><span class="badge <?= $st[1] ?>"><?= $st[0] ?></span></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -332,7 +378,7 @@ td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
             <?php else: ?>
                 <div class="tablewrap">
                     <table class="rt">
-                        <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr></thead>
+                        <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>Location</th></tr></thead>
                         <tbody>
                             <?php foreach ($rows as $r): $l = $labels[$r['action']] ?? [$r['action'], 'info']; ?>
                                 <tr>
@@ -340,7 +386,10 @@ td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
                                     <td data-label="User"><b><?= e($r['username'] ?? '—') ?></b></td>
                                     <td data-label="Action"><span class="badge b-<?= $l[1] ?>"><?= e($l[0]) ?></span></td>
                                     <td data-label="Details"><?= e($r['details']) ?></td>
-                                    <td data-label="IP"><?= e($r['ip_address']) ?></td>
+                                    <td data-label="Location">
+                                        <span style="font-weight: 600;"><?= e(get_ip_location($r['ip_address'])) ?></span><br>
+                                        <small class="muted">IP: <?= e($r['ip_address']) ?></small>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -402,7 +451,6 @@ td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
         const openReset = () => { rm.classList.add('open'); setTimeout(() => rm.querySelector('input[type=password]').focus(), 50); };
         document.getElementById('resetBtn').addEventListener('click', openReset);
         document.getElementById('resetCancel').addEventListener('click', () => rm.classList.remove('open'));
-        // The confirm() popup is removed. Submitting the form will just send the request.
         <?php if ($resetError): ?>openReset();<?php endif; ?>
     }
 </script>
