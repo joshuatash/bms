@@ -11,14 +11,13 @@ $active = 'ground_hire';
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Ground Hire</title>
     <style>
-        :root { --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0; --amber:#f59e0b; --green:#16a34a; --red:#dc2626; }
+        :root { --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0; --amber:#f59e0b; --green:#16a34a; --red:#dc2626; --blue:#2563eb; }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); color: var(--navy); }
         main { max-width: 1000px; margin: 24px auto; padding: 0 18px; display: grid; gap: 20px; }
         
         .head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .head h2 { margin: 0; font-size: 1.4rem; } .head p { margin: 2px 0 0; color: var(--muted); }
-
         .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
         .tile { background: #fff; border-radius: 12px; padding: 16px 18px; border-left: 5px solid var(--slate); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
         .tile small { color: var(--slate); font-weight: 600; } .tile b { display: block; font-size: 1.5rem; margin-top: 4px; }
@@ -39,26 +38,35 @@ $active = 'ground_hire';
         .hint { font-size: .85rem; margin-top: 10px; min-height: 1.2em; font-weight: 600; }
         .hint.good { color: var(--green); } .hint.bad { color: var(--red); }
         
+        /* Balance Preview Box */
+        .calc-box { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; font-size: 0.92rem; }
+        .calc-box b { font-size: 1.1rem; }
+
         .tablewrap { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: .92rem; }
         th { text-align: left; background: #f8fafc; color: var(--slate); padding: 11px 12px; font-size: .75rem; text-transform: uppercase; border-bottom: 2px solid var(--line); }
         td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
         .num { text-align: right; }
         .pre-wrap { white-space: pre-wrap; font-family: inherit; font-size: 0.9rem; color: var(--slate); margin-top: 4px; }
+        
+        /* Badges */
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+        .badge.completed { background: #dcfce7; color: #16a34a; }
+        .badge.pending { background: #fee2e2; color: #dc2626; }
 
         /* Modal / Popup styling */
         .modal { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: none; place-items: center; z-index: 60; padding: 12px; }
         .modal.open { display: grid; } 
-        .modal .box { background: #fff; border-radius: 14px; padding: 24px; width: min(400px,100%); text-align: center; }
-        .modal h3 { margin: 0 0 6px; color: var(--green); font-size: 1.4rem; } 
-        .modal .big { font-size: 1.7rem; font-weight: 800; margin: 10px 0; color: var(--navy); }
+        .modal .box { background: #fff; border-radius: 14px; padding: 24px; width: min(420px,100%); text-align: left; }
+        .modal h3 { margin: 0 0 6px; color: var(--navy); font-size: 1.3rem; text-align: center; } 
+        .modal .big { font-size: 1.5rem; font-weight: 800; margin: 10px 0; color: var(--green); text-align: center; }
         .modal .row { display: flex; gap: 10px; margin-top: 18px; } 
         .modal .row .btn { flex: 1; text-align: center; padding: 12px; }
-
         @media(max-width: 640px) {
             main { padding: 0 12px; margin: 14px auto; gap: 14px; }
             .tiles { grid-template-columns: 1fr; }
             .grid { grid-template-columns: 1fr; }
+            .calc-box { flex-direction: column; gap: 6px; text-align: center; }
             .btn.primary, .btn.ghost { width: 100%; padding: 14px; font-size: 1rem; }
             .head { flex-direction: column; align-items: stretch; text-align: center; }
             .btn.dark { width: 100%; }
@@ -79,27 +87,26 @@ $active = 'ground_hire';
     <div class="head">
         <div>
             <h2>Ground Hire Collections</h2>
-            <p>Record payments, time intervals, and grounds taken for hires.</p>
+            <p>Record bookings, deposits, pending balances, and grounds taken for hires.</p>
         </div>
     </div>
-
     <section class="tiles">
         <div class="tile money">
-            <small>Collected Today</small>
+            <small>Deposits Collected Today</small>
             <b><?= CURRENCY ?> <span id="statToday">0</span></b>
         </div>
         <div class="tile money">
-            <small>Collected This Month</small>
+            <small>Deposits Collected This Month</small>
             <b><?= CURRENCY ?> <span id="statMonth">0</span></b>
         </div>
     </section>
-
     <section class="card">
-        <h2>Record a New Collection</h2>
+        <h2>Record a New Ground Hire</h2>
         
         <div class="grid" style="margin-bottom: 14px;">
             <div><label>Customer / Event Name</label><input id="pCustomer" required></div>
-            <div><label>Amount (<?= CURRENCY ?>)</label><input id="pAmount" type="number" min="1" step="500"></div>
+            <div><label>Total Fee (<?= CURRENCY ?>)</label><input id="pAmount" type="number" min="1" step="500"></div>
+            <div><label>Deposit Paid (<?= CURRENCY ?>)</label><input id="pDeposit" type="number" min="0" step="500" placeholder="Leave empty for full payment"></div>
             <div><label>Method</label><select id="pMethod"><option>Cash</option><option>Mobile Money</option><option>Card</option></select></div>
             
             <div><label>Start Date</label><input id="pStartDate" type="date"></div>
@@ -113,6 +120,12 @@ $active = 'ground_hire';
             </div>
         </div>
 
+        <!-- Real-time Balance Preview Box -->
+        <div class="calc-box">
+            <span>Calculated Balance Due:</span>
+            <b id="previewBalance" style="color: var(--green);"><?= CURRENCY ?> 0</b>
+        </div>
+
         <div style="display: flex; gap: 10px;">
             <button class="btn ghost" id="pCancel" style="flex: 1;">Cancel</button>
             <button class="btn primary" id="pSave" style="flex: 2;">Save & Print Receipt</button>
@@ -120,7 +133,6 @@ $active = 'ground_hire';
         
         <div class="hint" id="pHint"></div>
     </section>
-
     <section class="card">
         <h3>Recent Ground Hires</h3>
         <div class="tablewrap">
@@ -131,27 +143,50 @@ $active = 'ground_hire';
                         <th>Interval (Start → End)</th>
                         <th>Customer / Event</th>
                         <th>Details / Grounds</th>
-                        <th>Received By</th>
-                        <th class="num">Amount (<?= CURRENCY ?>)</th>
+                        <th class="num">Total (<?= CURRENCY ?>)</th>
+                        <th class="num">Deposit (<?= CURRENCY ?>)</th>
+                        <th class="num">Balance (<?= CURRENCY ?>)</th>
+                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="pTbody">
-                    <tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">Loading...</td></tr>
+                    <tr><td colspan="9" style="text-align:center; color:#64748b; padding:20px;">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
     </section>
 </main>
 
-<!-- SUCCESS MODAL -->
-<div class="modal" id="done"><div class="box">
+<!-- SUCCESS / PRINT MODAL -->
+<div class="modal" id="done"><div class="box" style="text-align:center;">
     <h3>Ground Hire Saved</h3>
     <div>Customer: <b id="dCustomer"></b></div>
-    <div class="big" id="dTotal"></div>
+    <div class="big" id="dTotal" style="color:var(--navy);"></div>
+    <div id="dBalanceInfo" style="margin-bottom: 12px; font-size: 0.9rem; color: var(--red);"></div>
     <div class="row">
         <button class="btn ghost" id="dClose" style="margin:0">Done</button>
         <button class="btn primary" id="dPrint" style="margin:0">Print Receipt</button>
+    </div>
+</div></div>
+
+<!-- PAY BALANCE MODAL -->
+<div class="modal" id="payModal"><div class="box">
+    <h3>Clear Pending Balance</h3>
+    <div style="margin-bottom: 10px; font-size: 0.9rem; color: var(--muted);">Customer: <b id="bCustomerName"></b></div>
+    <div style="margin-bottom: 14px; font-size: 0.95rem;">Remaining Balance: <b id="bRemainingBal" style="color: var(--red);"></b></div>
+    
+    <div style="margin-bottom: 12px;">
+        <label>Payment Amount (<?= CURRENCY ?>)</label>
+        <input id="bPayAmount" type="number" min="1" step="500">
+    </div>
+    <div style="margin-bottom: 18px;">
+        <label>Payment Method</label>
+        <select id="bPayMethod"><option>Cash</option><option>Mobile Money</option><option>Card</option></select>
+    </div>
+    <div class="row">
+        <button class="btn ghost" id="bPayCancel" style="margin:0">Cancel</button>
+        <button class="btn primary" id="bPaySubmit" style="margin:0">Confirm Payment</button>
     </div>
 </div></div>
 
@@ -162,16 +197,29 @@ const $ = id => document.getElementById(id);
 const fmt = n => Number(n).toLocaleString();
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const apiUrl = './api/ground_hire.php';
-
 const hint = (t, k='') => { $('pHint').textContent = t; $('pHint').className = 'hint ' + k; };
 
-// Format time to 12hr (e.g., 14:30 -> 02:30 PM)
 const fmtTime = (timeStr) => {
     if (!timeStr) return '';
     const [h, m] = timeStr.split(':');
     const d = new Date(); d.setHours(h, m);
     return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
 };
+
+// Real-time Balance Calculation as you type
+function updateBalancePreview() {
+    const total = parseFloat($('pAmount').value) || 0;
+    const depositInput = $('pDeposit').value;
+    const deposit = depositInput === '' ? total : (parseFloat(depositInput) || 0);
+    const balance = Math.max(0, total - deposit);
+    
+    const preview = $('previewBalance');
+    preview.textContent = CUR + ' ' + fmt(balance);
+    preview.style.color = balance > 0 ? 'var(--red)' : 'var(--green)';
+}
+
+$('pAmount').addEventListener('input', updateBalancePreview);
+$('pDeposit').addEventListener('input', updateBalancePreview);
 
 async function loadData() {
     try {
@@ -180,15 +228,12 @@ async function loadData() {
         
         $('statToday').textContent = fmt(r.today);
         $('statMonth').textContent = fmt(r.month);
-
         if (!r.rows.length) {
-            $('pTbody').innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No ground hires recorded yet.</td></tr>';
+            $('pTbody').innerHTML = '<tr><td colspan="9" style="text-align:center; color:#64748b; padding:20px;">No ground hires recorded yet.</td></tr>';
             return;
         }
-
         $('pTbody').innerHTML = r.rows.map(x => {
             const desc = x.description ? `<div class="pre-wrap">${esc(x.description)}</div>` : '—';
-            
             let interval = '—';
             if (x.start_date && x.end_date) {
                 const sD = new Date(x.start_date).toLocaleDateString(undefined, {month:'short', day:'numeric'});
@@ -197,6 +242,15 @@ async function loadData() {
                 const eT = fmtTime(x.end_time);
                 interval = `<b>${sD} ${sT}</b> &rarr; <b>${eD} ${eT}</b>`;
             }
+            
+            const statusBadge = x.status === 'Completed' 
+                ? '<span class="badge completed">Paid</span>' 
+                : `<span class="badge pending">Balance: ${fmt(x.balance)}</span>`;
+                
+            let actionBtns = `<button class="btn sm dark" onclick="showModal(${x.id})">Print</button>`;
+            if (Number(x.balance) > 0) {
+                actionBtns += ` <button class="btn sm primary" style="margin-top:4px;" onclick="openPayModal(${x.id}, '${esc(x.customer_name)}', ${x.balance})">Pay Bal</button>`;
+            }
 
             return `
             <tr>
@@ -204,11 +258,11 @@ async function loadData() {
                 <td data-label="Interval">${interval}</td>
                 <td data-label="Customer"><b>${esc(x.customer_name)}</b></td>
                 <td data-label="Details / Grounds">${desc}</td>
-                <td data-label="Received By">${esc(x.full_name)}</td>
-                <td class="num" data-label="Amount"><b style="color:var(--green)">${fmt(x.amount)}</b></td>
-                <td data-label="Action">
-                    <button class="btn sm dark" onclick="showModal(${x.id})">Print</button>
-                </td>
+                <td class="num" data-label="Total">${fmt(x.amount)}</td>
+                <td class="num" data-label="Deposit"><b style="color:var(--green)">${fmt(x.deposit)}</b></td>
+                <td class="num" data-label="Balance"><b style="color:${x.balance > 0 ? 'var(--red)' : 'var(--slate)'}">${fmt(x.balance)}</b></td>
+                <td data-label="Status">${statusBadge}</td>
+                <td data-label="Action">${actionBtns}</td>
             </tr>
             `;
         }).join('');
@@ -219,31 +273,36 @@ $('pCancel').onclick = () => {
     $('pCustomer').value = '';
     $('pDesc').value = '';
     $('pAmount').value = '';
+    $('pDeposit').value = '';
     $('pStartDate').value = '';
     $('pStartTime').value = '';
     $('pEndDate').value = '';
     $('pEndTime').value = '';
+    updateBalancePreview();
     hint('');
     $('pCustomer').focus();
     showToast('Form cleared.');
 };
 
 $('pSave').onclick = async () => {
+    const totalFee = $('pAmount').value;
+    const depositVal = $('pDeposit').value;
+    
     const body = {
         customer_name: $('pCustomer').value,
-        description: $('pDesc').value, // Ensure this matches the textarea ID
-        amount: $('pAmount').value,
+        description: $('pDesc').value,
+        total_fee: totalFee,
+        deposit: depositVal === '' ? totalFee : depositVal,
         payment_method: $('pMethod').value,
         start_date: $('pStartDate').value,
         start_time: $('pStartTime').value,
         end_date: $('pEndDate').value,
         end_time: $('pEndTime').value
     };
-
+    
     $('pSave').disabled = true;
     $('pSave').textContent = 'Saving...';
     hint('');
-
     try {
         const res = await fetch(apiUrl + '?action=add', {
             method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF': CSRF }, body: JSON.stringify(body)
@@ -252,14 +311,14 @@ $('pSave').onclick = async () => {
         const text = await res.text();
         let r;
         try { r = JSON.parse(text); } catch (err) { throw new Error("Server Error: " + text.substring(0, 100)); }
-
         if (r.error) { 
             hint(r.error, 'bad'); 
         } else {
             hint('', '');
             showToast('Record saved successfully!');
-            $('pCustomer').value = ''; $('pDesc').value = ''; $('pAmount').value = '';
+            $('pCustomer').value = ''; $('pDesc').value = ''; $('pAmount').value = ''; $('pDeposit').value = '';
             $('pStartDate').value = ''; $('pStartTime').value = ''; $('pEndDate').value = ''; $('pEndTime').value = '';
+            updateBalancePreview();
             
             await loadData();
             showModal(r.id);
@@ -267,35 +326,71 @@ $('pSave').onclick = async () => {
     } catch (e) {
         hint(e.message || 'Network error.', 'bad');
     }
-
     $('pSave').disabled = false;
     $('pSave').textContent = 'Save & Print Receipt';
 };
 
 // Modal Logic
 let currentPrintId = null;
-
 async function showModal(id) {
     currentPrintId = id;
     const r = await (await fetch(apiUrl + '?action=list')).json();
     const data = r.rows.find(x => x.id == id);
     if (!data) return;
-
     $('dCustomer').textContent = data.customer_name;
     $('dTotal').textContent = CUR + ' ' + fmt(data.amount);
+    if (Number(data.balance) > 0) {
+        $('dBalanceInfo').textContent = `Pending Balance: ${CUR} ${fmt(data.balance)}`;
+    } else {
+        $('dBalanceInfo').textContent = 'Fully Paid';
+    }
     $('done').classList.add('open');
 }
-
-$('dClose').onclick = () => {
-    $('done').classList.remove('open');
-};
-
+$('dClose').onclick = () => $('done').classList.remove('open');
 $('dPrint').onclick = () => {
     printReceipt(currentPrintId);
     $('done').classList.remove('open');
 };
 
-// Actual Print Function (Styled like POS Receipt)
+// Pay Balance Modal Logic
+let activeBalanceId = null;
+function openPayModal(id, customerName, remainingBal) {
+    activeBalanceId = id;
+    $('bCustomerName').textContent = customerName;
+    $('bRemainingBal').textContent = CUR + ' ' + fmt(remainingBal);
+    $('bPayAmount').value = remainingBal;
+    $('payModal').classList.add('open');
+}
+$('bPayCancel').onclick = () => $('payModal').classList.remove('open');
+
+$('bPaySubmit').onclick = async () => {
+    const payAmt = $('bPayAmount').value;
+    const method = $('bPayMethod').value;
+    
+    $('bPaySubmit').disabled = true;
+    $('bPaySubmit').textContent = 'Processing...';
+    try {
+        const res = await fetch(apiUrl + '?action=pay_balance', {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json', 'X-CSRF': CSRF }, 
+            body: JSON.stringify({ id: activeBalanceId, amount: payAmt, payment_method: method })
+        });
+        const r = await res.json();
+        if (r.error) {
+            showToast(r.error, 'error');
+        } else {
+            showToast('Balance payment recorded successfully!');
+            $('payModal').classList.remove('open');
+            await loadData();
+        }
+    } catch(e) {
+        showToast('Network error.', 'error');
+    }
+    $('bPaySubmit').disabled = false;
+    $('bPaySubmit').textContent = 'Confirm Payment';
+};
+
+// Receipt Print Function (Matched exactly to PA System Design Style[cite: 2])
 async function printReceipt(id) {
     const r = await (await fetch(apiUrl + '?action=list')).json();
     if (r.error) return;
@@ -309,43 +404,65 @@ async function printReceipt(id) {
         const eD = new Date(data.end_date).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
         intervalStr = `${sD} ${fmtTime(data.start_time)} to ${eD} ${fmtTime(data.end_time)}`;
     }
-
+    
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
         <html>
         <head>
             <title>Ground Hire Receipt - ${esc(data.customer_name)}</title>
             <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; color: #0f172a; display: flex; flex-direction: column; align-items: center; }
-                .rc { width: 340px; border: 1px dashed #94a3b8; padding: 18px; font-size: 13px; }
-                .rc h1 { margin: 0; text-align: center; font-size: 18px; } 
-                .rc .c { text-align: center; color: #64748b; margin: 2px 0; }
-                hr { border: 0; border-top: 1px dashed #94a3b8; margin: 10px 0; }
-                table { width: 100%; border-collapse: collapse; } td { padding: 4px 0; vertical-align: top; } .r { text-align: right; }
-                .tot { display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; margin-top: 8px; }
-                .desc { white-space: pre-wrap; font-size: 13px; line-height: 1.4; margin: 10px 0; }
-                @media print { .bar { display: none; } body { margin: 0; } .rc { border: 0; } }
+                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; color: #0f172a; display: flex; justify-content: center; background: #fff; }
+                .receipt { width: 340px; border: 1px solid #cbd5e1; padding: 22px; border-radius: 12px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+                .center { text-align: center; }
+                .logo-img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; margin-bottom: 6px; background: #0f172a; }
+                h1 { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: 0.3px; color: #0f172a; }
+                .sub-header { font-size: 0.73rem; color: #64748b; line-height: 1.3; margin-top: 2px; }
+                .badge-title { display: inline-block; background: #f1f5f9; color: #0f172a; font-weight: 700; font-size: 0.75rem; padding: 5px 14px; border-radius: 6px; margin: 10px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .date-str { font-size: 0.78rem; color: #64748b; margin-bottom: 12px; }
+                hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 10px 0; }
+                .info-table { width: 100%; font-size: 0.88rem; margin-bottom: 6px; }
+                .info-table td { padding: 4px 0; vertical-align: top; }
+                .info-table td.val { text-align: right; font-weight: 700; color: #0f172a; }
+                .section-label { font-size: 0.8rem; font-weight: 700; color: #0f172a; margin-top: 10px; margin-bottom: 4px; text-transform: uppercase; }
+                .desc-box { font-size: 0.85rem; background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 10px; border-radius: 6px; margin: 6px 0; white-space: pre-wrap; color: #334155; }
+                .totals-table { width: 100%; font-size: 0.92rem; margin-top: 6px; font-weight: 800; }
+                .totals-table td { padding: 5px 0; }
+                .totals-table td.val { text-align: right; }
+                .footer-note { text-align: center; font-size: 0.76rem; font-style: italic; color: #64748b; margin-top: 16px; }
+                @media print { body { padding: 0; background: #fff; } .receipt { border: none; padding: 0; width: 100%; box-shadow: none; } }
             </style>
         </head>
         <body>
-            <div class="rc">
-                <h1>Business Manager</h1>
-                <div class="c">Ground Hire Receipt</div>
-                <div class="c">Date: ${new Date(data.created_at.replace(' ', 'T')).toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true})}</div>
+            <div class="receipt">
+                <div class="center">
+                    <img src="logo.png" class="logo-img" alt="Logo">
+                    <h1>BIG WALLET LOUNGE - BALA</h1>
+                    <div class="sub-header">
+                        Te-Cambia B, Bala Town Council, Kole District<br>
+                        WhatsApp: +211925830541 | Tel: 0787072542<br>
+                        Email: info@bigwalletlounge.com
+                    </div>
+                    <div class="badge-title">Ground Hire Receipt</div>
+                    <div class="date-str">Date: ${new Date(data.created_at.replace(' ', 'T')).toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true})}</div>
+                </div>
                 <hr>
-                <table>
-                    <tr><td>Customer / Event:</td><td class="r"><b>${esc(data.customer_name)}</b></td></tr>
-                    <tr><td>Received By:</td><td class="r">${esc(data.full_name)}</td></tr>
-                    <tr><td>Method:</td><td class="r">${esc(data.payment_method)}</td></tr>
-                    <tr><td>Time Interval:</td><td class="r"><b>${intervalStr}</b></td></tr>
+                <table class="info-table">
+                    <tr><td>Customer:</td><td class="val">${esc(data.customer_name)}</td></tr>
+                    <tr><td>Staff:</td><td class="val">${esc(data.full_name)}</td></tr>
+                    <tr><td>Method:</td><td class="val">${esc(data.payment_method)}</td></tr>
+                    <tr><td>Interval:</td><td class="val" style="font-size: 0.8rem; font-weight: 600;">${esc(intervalStr)}</td></tr>
                 </table>
                 <hr>
-                <div><b>Details / Grounds Taken:</b></div>
-                <div class="desc">${esc(data.description || 'No description provided.')}</div>
+                <div class="section-label">Details / Grounds Taken:</div>
+                <div class="desc-box">${esc(data.description || 'No description provided.')}</div>
                 <hr>
-                <div class="tot"><span>TOTAL</span><span>${CUR} ${fmt(data.amount)}</span></div>
+                <table class="totals-table">
+                    <tr><td>TOTAL AMOUNT:</td><td class="val"><?= CURRENCY ?> ${fmt(data.amount)}</td></tr>
+                    <tr><td>DEPOSIT PAID:</td><td class="val" style="color: #16a34a;"><?= CURRENCY ?> ${fmt(data.deposit)}</td></tr>
+                    <tr><td style="color: #dc2626;">BALANCE DUE:</td><td class="val" style="color: #dc2626;"><?= CURRENCY ?> ${fmt(data.balance)}</td></tr>
+                </table>
                 <hr>
-                <div class="c">Thank you!</div>
+                <div class="footer-note">Thank you for doing business with Big Wallet Lounge!</div>
             </div>
             <script>
                 window.onload = function() { window.print(); }
@@ -355,7 +472,6 @@ async function printReceipt(id) {
     `);
     printWindow.document.close();
 }
-
 loadData();
 </script>
 </body>

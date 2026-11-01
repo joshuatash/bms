@@ -5,7 +5,7 @@ $active = 'dashboard';
 $pdo = db(); 
 
 // Fetch Admin Name from Database
-$adminId = current_user()['id'];
+$adminId = current_user()['user_id'] ?? current_user()['id'];
 $stmtName = $pdo->prepare("SELECT full_name FROM users WHERE user_id = ?");
 $stmtName->execute([$adminId]);
 $adminName = $stmtName->fetchColumn() ?: current_user()['name'];
@@ -19,6 +19,11 @@ $p = $pdo->query("SELECT COUNT(*) total, COALESCE(SUM(bottles_available > 0 AND 
 // Sales Stats
 $salesToday = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE DATE(sale_date) = CURDATE()")->fetchColumn();
 $salesMonth = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE sale_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
+
+// Profit Stats (Computed safely using product buying prices directly)
+$profitToday = (float)$pdo->query("SELECT COALESCE(SUM(i.line_total - (COALESCE(p.buying_price, 0) * i.qty_bottles)), 0) FROM sales_record_items i JOIN sales_record s ON s.sale_id = i.sale_id LEFT JOIN products p ON p.product_id = i.product_id WHERE DATE(s.sale_date) = CURDATE()")->fetchColumn();
+$profitMonth = (float)$pdo->query("SELECT COALESCE(SUM(i.line_total - (COALESCE(p.buying_price, 0) * i.qty_bottles)), 0) FROM sales_record_items i JOIN sales_record s ON s.sale_id = i.sale_id LEFT JOIN products p ON p.product_id = i.product_id WHERE s.sale_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
+
 $users = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
 
 // Expenses Stats
@@ -66,11 +71,13 @@ try {
         .tile b { display: block; font-size: 1.7rem; } .tile small { color: var(--muted); }
         
         .tile.low { border-color: #ea580c; } .tile.out { border-color: var(--red); } 
-        .tile.spend { border-color: var(--amber); } .tile.money { border-color: var(--green); }
+        .tile.spend { border-color: #f59e0b; } .tile.money { border-color: #16a34a; }
+        .tile.profit { border-color: #2563eb; }
         
         .tile.link { display: block; text-decoration: none; color: inherit; cursor: pointer; transition: .15s; }
         .tile.link:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0,0,0,.1); }
-        .tile .more { display: block; margin-top: 8px; font-size: .78rem; font-weight: 700; color: var(--green); }
+        .tile .more { display: block; margin-top: 8px; font-size: .78rem; font-weight: 700; color: #16a34a; }
+        .tile.profit .more { color: #2563eb; }
         
         .tile.soon::after { content: 'Soon'; position: absolute; top: 10px; right: 12px; font-size: .62rem; background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 999px; }
 
@@ -89,10 +96,13 @@ try {
     <h2>Welcome, <?= e($adminName) ?></h2>
     <p class="sub">Main dashboard</p>
 
-    <div class="group">Money (<?= CURRENCY ?>) - Today</div>
+    <div class="group">Money &amp; Profit (<?= CURRENCY ?>) - Today</div>
     <section class="tiles">
         <a class="tile money link" href="sales_report.php?period=today">
             <small>Total Sales Today</small><b><?= $money($salesToday) ?></b><span class="more">View details &rarr;</span>
+        </a>
+        <a class="tile profit link" href="sales_report.php?period=today">
+            <small>Gross Profit Today (Sales Only)</small><b style="color:#2563eb;"><?= $money($profitToday) ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile spend link" href="expenses.php">
             <small>Expenses Today</small><b><?= $money($expensesToday) ?></b><span class="more">View details &rarr;</span>
@@ -108,10 +118,13 @@ try {
         </a>
     </section>
 
-    <div class="group">Money (<?= CURRENCY ?>) - This Month</div>
+    <div class="group">Money &amp; Profit (<?= CURRENCY ?>) - This Month</div>
     <section class="tiles">
         <a class="tile money link" href="sales_report.php?period=month">
             <small>Total Sales This Month</small><b><?= $money($salesMonth) ?></b><span class="more">View details &rarr;</span>
+        </a>
+        <a class="tile profit link" href="sales_report.php?period=month">
+            <small>Gross Profit This Month (Sales Only)</small><b style="color:#2563eb;"><?= $money($profitMonth) ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile spend link" href="expenses.php">
             <small>Expenses This Month</small><b><?= $money($expensesMonth) ?></b><span class="more">View details &rarr;</span>

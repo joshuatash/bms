@@ -5,6 +5,7 @@ $active = $active ?? '';
 $isAdminHdr = $hu['role'] === 'admin';
 $isManagerHdr = $hu['role'] === 'manager';
 $isCashierHdr = $hu['role'] === 'cashier';
+$isHrHdr = $hu['role'] === 'hr';
 $canManage = $isAdminHdr || $isManagerHdr;
 
 // Fallback title if the page didn't define one
@@ -133,8 +134,11 @@ $link = fn(string $key, string $href, string $label) =>
       <?= $link('analytics', 'analytics.php', 'Analytics') ?>
     <?php endif; ?>
 
-    <?php if ($isAdminHdr): ?>
+    <?php if ($isHrHdr): ?>
       <?= $link('hr_dashboard', 'hr_dashboard.php', 'HR Dashboard') ?>
+    <?php endif; ?>
+
+    <?php if ($isAdminHdr): ?>
       <?= $link('settings', 'settings.php', 'Settings') ?>
     <?php endif; ?>
     
