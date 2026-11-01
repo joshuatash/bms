@@ -1,12 +1,11 @@
 <?php 
 require __DIR__ . '/config.php'; 
-require_manager(); // UPDATED: Uses the central security function
+require_manager(); // Uses central security function
 
 $active = 'dashboard'; 
 $pdo = db(); 
 
 // Fetch Manager Name
-// FIXED: Changed current_user()['id'] to current_user()['user_id']
 $managerId = current_user()['user_id']; 
 $stmtName = $pdo->prepare("SELECT full_name FROM users WHERE user_id = ?");
 $stmtName->execute([$managerId]);
@@ -70,8 +69,6 @@ $money = fn($n) => number_format((float)$n);
         .tile.link { display: block; text-decoration: none; color: inherit; cursor: pointer; transition: .15s; }
         .tile.link:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0,0,0,.1); }
         .tile .more { display: block; margin-top: 8px; font-size: .78rem; font-weight: 700; color: var(--green); }
-        
-        .tile.soon::after { content: 'Soon'; position: absolute; top: 10px; right: 12px; font-size: .62rem; background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 999px; }
 
         @media(max-width: 640px) {
             main { margin: 14px auto; padding: 0 12px; } 

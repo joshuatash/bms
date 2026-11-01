@@ -117,6 +117,9 @@ $link = fn(string $key, string $href, string $label) =>
       <?= $link('products', 'products.php', 'Products') ?>
     <?php endif; ?>
     
+    <!-- Display Point of Sale for Admin, Cashier, and Manager roles -->
+    <?= $link('pos', 'pos.php', 'Point of Sale') ?>
+
     <?php if ($isCashierHdr): ?>
       <?= $link('book_room', 'book_room.php', 'Book Room') ?>
     <?php endif; ?>

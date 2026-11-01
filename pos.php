@@ -74,7 +74,6 @@
         .modal .big{font-size:2.2rem;font-weight:900;margin:16px 0; color:var(--navy)}
         .modal .row{display:flex;gap:12px;margin-top:24px}
         .modal .btn{padding:14px}
-        a.btn{display:block;text-decoration:none;text-align:center}
         
         /* Mobile Cart Bar */
         .cartbar{display:none}
@@ -160,13 +159,14 @@
     <div>Receipt: <b id="dRec"></b></div>
     <div class="big" id="dTotal"></div>
     <div class="row">
-        <a class="btn ghost" id="dPrint" target="_blank" style="margin:0">Print Receipt</a>
+        <button class="btn ghost" id="dPrint" style="margin:0">Print Receipt</button>
         <button class="btn primary" id="dNew">New Sale</button>
     </div>
 </div></div>
 
 <script>
 const CSRF = <?= json_encode(csrf_token()) ?>, CUR = <?= json_encode(CURRENCY) ?>;
+const CASHIER_NAME = <?= json_encode($user['name']) ?>;
 const $ = id => document.getElementById(id);
 const fmt = n => Number(n).toLocaleString();
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -174,6 +174,7 @@ const debounce = (fn, ms=250) => { let t; return (...a) => { clearTimeout(t); t 
 
 const cart = new Map(); 
 let rows = [];
+let lastCompletedSale = null;
 
 async function load() {
     const r = await (await fetch('api/products.php?action=list&q=' + encodeURIComponent($('q').value.trim()))).json();
@@ -268,21 +269,118 @@ $('q').addEventListener('input', debounce(load));
 $('cbBtn').onclick = () => document.querySelector('.cart').scrollIntoView({behavior: 'smooth'});
 
 $('pay').onclick = async () => {
-    const items = [...cart.values()].map(c => ({product_id: c.id, qty: c.qty}));
+    const rawItems = [...cart.values()];
+    const items = rawItems.map(c => ({product_id: c.id, qty: c.qty}));
     if (!items.length) return;
     $('pay').disabled = true; $('pay').textContent = 'Saving...'; $('hint').textContent = '';
     try {
-        const r = await (await fetch('api/pos.php', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF':CSRF}, body:JSON.stringify({items})})).json();
+        const res = await fetch('api/pos.php', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF':CSRF}, body:JSON.stringify({items})});
+        const r = await res.json();
         if (r.error) { $('hint').textContent = r.error; $('hint').className = 'hint bad'; load(); }
         else {
+            lastCompletedSale = {
+                receipt_no: r.receipt_no,
+                total: r.total,
+                date: new Date(),
+                cashier: CASHIER_NAME,
+                items: rawItems
+            };
             $('dRec').textContent = r.receipt_no;
             $('dTotal').textContent = CUR + ' ' + fmt(r.total);
-            $('dPrint').href = 'receipt.php?id=' + r.sale_id;
             $('done').classList.add('open'); cart.clear(); load();
         }
     } catch (err) { $('hint').textContent = 'Network problem. Nothing was charged.'; $('hint').className = 'hint bad'; }
     $('pay').textContent = 'Complete Payment'; $('pay').disabled = cart.size === 0;
 };
+
+$('dPrint').onclick = () => {
+    if (!lastCompletedSale) return;
+    printReceipt(lastCompletedSale);
+};
+
+function printReceipt(data) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Sales Receipt - ${esc(data.receipt_no)}</title>
+            <style>
+                @page { size: 80mm auto; margin: 0; }
+                body { 
+                    font-family: 'Segoe UI', Arial, sans-serif; 
+                    margin: 0; 
+                    padding: 10px; 
+                    color: #0f172a; 
+                    background: #fff; 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: flex-start;
+                }
+                .rc { 
+                    width: 76mm; 
+                    padding: 12px; 
+                    font-size: 12px; 
+                    background: #fff; 
+                    border: 1px solid #e2e8f0;
+                    border-radius: 6px;
+                }
+                .logo-container { text-align: center; margin-bottom: 8px; }
+                .logo-container img { 
+                    width: 60px; 
+                    height: 60px; 
+                    border-radius: 50%; 
+                    object-fit: cover; 
+                    border: 2px solid #cbd5e1; 
+                }
+                .rc h1 { margin: 0 0 2px; text-align: center; font-size: 15px; font-weight: 800; color: #0f172a; } 
+                .rc .sub-header { text-align: center; font-size: 10px; color: #475569; line-height: 1.4; margin-bottom: 8px; }
+                .rc .badge { text-align: center; font-weight: 700; font-size: 11px; background: #f1f5f9; padding: 4px; border-radius: 4px; margin: 6px 0; color: #334155; text-transform: uppercase; }
+                .rc .c { text-align: center; color: #64748b; margin: 2px 0; font-size: 10px; }
+                hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 8px 0; }
+                table { width: 100%; border-collapse: collapse; } td { padding: 3px 0; vertical-align: top; font-size: 11px; } .r { text-align: right; }
+                .tot { display: flex; justify-content: space-between; font-weight: 700; font-size: 13px; margin-top: 6px; }
+                .footer-note { text-align: center; font-size: 10px; color: #64748b; margin-top: 10px; font-style: italic; }
+                @media print { 
+                    body { padding: 0; background: #fff; display: block; } 
+                    .rc { border: none; border-radius: 0; width: 72mm; padding: 0; margin: 0 auto; box-shadow: none; } 
+                }
+            </style>
+        </head>
+        <body>
+            <div class="rc">
+                <h1>BIG WALLET LOUNGE - BALA</h1>
+                <div class="sub-header">
+                    Te-Cambia B, Bala Town Council, Kole District<br>
+                    WhatsApp: +211925830541 | Tel: 0787072542<br>
+                    Email: info@bigwalletlounge.com
+                </div>
+                <div class="logo-container">
+                    <img src="logo.png" alt="Logo">
+                </div>
+                <div class="badge">Sales Receipt</div>
+                <div class="c">Receipt No: ${esc(data.receipt_no)}</div>
+                <div class="c">Date: ${data.date.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true})}</div>
+                <div class="c">Served by: ${esc(data.cashier)}</div>
+                <hr>
+                <table>
+                    ${data.items.map(i => `
+                        <tr><td colspan="2"><b>${esc(i.name)}</b></td></tr>
+                        <tr><td>${i.qty} x ${fmt(i.price)}</td><td class="r">${fmt(i.price * i.qty)}</td></tr>
+                    `).join('')}
+                </table>
+                <hr>
+                <div class="tot"><span>TOTAL AMOUNT:</span><span>${CUR} ${fmt(data.total)}</span></div>
+                <hr>
+                <div class="footer-note">Thank you for doing business with Big Wallet Lounge!</div>
+            </div>
+            <script>
+                window.onload = function() { window.print(); }
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
 
 $('dNew').onclick = () => { $('done').classList.remove('open'); $('q').value = ''; load(); $('q').focus(); };
 
