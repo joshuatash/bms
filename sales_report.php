@@ -9,15 +9,22 @@ $todayStr = $pdo->query("SELECT CURDATE()")->fetchColumn();
 log_activity('view_sales_report', $period === 'today' ? 'Sales today' : 'Sales this month');
 if ($period === 'today') {
     $where  = "s.sale_date >= CURDATE() AND s.sale_date < CURDATE() + INTERVAL 1 DAY";
-    $title  = 'Sales Report & Profit from Sales Only (Today)';
+    $expenseWhere = "expense_date >= CURDATE() AND expense_date < CURDATE() + INTERVAL 1 DAY";
+    $title  = 'Sales Report & Net Profit (Today)';
     $label  = date('l, d M Y', strtotime($todayStr));
     $timeFmt = 'h:i A'; // 12-hour format with AM/PM
 } else {
     $where  = "s.sale_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND s.sale_date < DATE_FORMAT(CURDATE(), '%Y-%m-01') + INTERVAL 1 MONTH";
-    $title  = 'Sales Report & Profit from Sales Only (This Month)';
+    $expenseWhere = "expense_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND expense_date < DATE_FORMAT(CURDATE(), '%Y-%m-01') + INTERVAL 1 MONTH";
+    $title  = 'Sales Report & Net Profit (This Month)';
     $label  = date('F Y', strtotime($todayStr));
     $timeFmt = 'd M, h:i A'; // 12-hour format with AM/PM
 }
+
+// Fetch total expenses for the period
+$stmtExp = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE $expenseWhere");
+$stmtExp->execute();
+$totalExpenses = (float)$stmtExp->fetchColumn();
 
 // Fetch sales with profit computed safely using the products table buying price
 $rows = $pdo->query("SELECT s.sale_date, s.receipt_no, i.product_name, i.qty_bottles, i.unit_price, i.line_total, 
@@ -45,6 +52,10 @@ foreach ($rows as $r) {
     $byItem[$k]['amount']  += $lineTotal;
     $byItem[$k]['profit']  += $lineProfit;
 }
+
+// Calculate Net Profit after deducting expenses
+$netProfit = $totalProfit - $totalExpenses;
+
 uasort($byItem, fn($a, $b) => $b['amount'] <=> $a['amount']);
 $n = fn($x) => number_format((float)$x);
 ?>
@@ -52,7 +63,7 @@ $n = fn($x) => number_format((float)$x);
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?= e($title) ?></title>
 <style>
-:root{--navy:#0f172a;--slate:#334155;--muted:#64748b;--line:#e2e8f0;--amber:#f59e0b;--green:#16a34a}
+:root{--navy:#0f172a;--slate:#334155;--muted:#64748b;--line:#e2e8f0;--amber:#f59e0b;--green:#16a34a;--red:#dc2626}
 *{box-sizing:border-box}body{margin:0;font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);color:var(--navy)}
 main{max-width:1100px;margin:24px auto;padding:0 18px;display:grid;gap:18px}
 /* HEADER */
@@ -66,7 +77,7 @@ main{max-width:1100px;margin:24px auto;padding:0 18px;display:grid;gap:18px}
 /* TILES */
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
 .tile{background:#fff;border-radius:12px;padding:16px 18px;border-left:5px solid var(--slate);box-shadow:0 1px 3px rgba(0,0,0,.06)}
-.tile.money{border-color:var(--green)}.tile.profit{border-color:#2563eb}.tile small{color:var(--muted)}.tile b{display:block;font-size:1.6rem}
+.tile.money{border-color:var(--green)}.tile.profit{border-color:#2563eb}.tile.expense{border-color:var(--red)}.tile.net{border-color:#16a34a}.tile small{color:var(--muted)}.tile b{display:block;font-size:1.6rem}
 /* CARDS & TABLES */
 .card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .card h3{margin:0 0 12px;font-size:1.02rem}
@@ -116,7 +127,7 @@ tfoot td{font-weight:800;border-top:2px solid var(--navy);border-bottom:0;backgr
   <div class="head">
     <div>
       <h2><?= e($title) ?></h2>
-      <p><?= e($label) ?> &bull; <small style="color:var(--slate); font-weight:600;">(Profits from Sales Only)</small></p>
+      <p><?= e($label) ?> &bull; <small style="color:var(--slate); font-weight:600;">(Gross Profit minus Expenses)</small></p>
       <p class="printonly note">Generated <?= date('d M Y, h:i A') ?> by <?= e(current_user()['name']) ?></p>
     </div>
     <div class="actions noprint">
@@ -128,7 +139,9 @@ tfoot td{font-weight:800;border-top:2px solid var(--navy);border-bottom:0;backgr
   </div>
   <section class="tiles">
     <div class="tile money"><small>Total Sales (<?= CURRENCY ?>)</small><b><?= $n($total) ?></b></div>
-    <div class="tile profit"><small>Gross Profit from Sales (<?= CURRENCY ?>)</small><b style="color:#2563eb;"><?= $n($totalProfit) ?></b></div>
+    <div class="tile profit"><small>Gross Profit (<?= CURRENCY ?>)</small><b style="color:#2563eb;"><?= $n($totalProfit) ?></b></div>
+    <div class="tile expense"><small>Total Expenses (<?= CURRENCY ?>)</small><b style="color:var(--red);"><?= $n($totalExpenses) ?></b></div>
+    <div class="tile net"><small>Net Profit (<?= CURRENCY ?>)</small><b style="color:var(--green);"><?= $n($netProfit) ?></b></div>
     <div class="tile"><small>Receipts</small><b><?= count($receipts) ?></b></div>
     <div class="tile"><small>Bottles Sold</small><b><?= $n($bottles) ?></b></div>
   </section>
