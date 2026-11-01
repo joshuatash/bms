@@ -11,7 +11,6 @@ $active = 'pa_system';
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>PA System</title>
     <style>
-        /* CSS remains the same */
         :root { --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0; --amber:#f59e0b; --green:#16a34a; --red:#dc2626; }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); color: var(--navy); }
@@ -73,7 +72,7 @@ $active = 'pa_system';
     <div class="head">
         <div>
             <h2>PA System Collections</h2>
-            <p>Record payments and items taken for PA system hires.</p>
+            <p>Record payments, deposits, and items taken for PA system hires.</p>
         </div>
     </div>
 
@@ -92,13 +91,15 @@ $active = 'pa_system';
         <h2>Record a New Collection</h2>
         <div class="grid">
             <div><label>Customer / Event Name</label><input id="pCustomer" required></div>
-            <div><label>Amount (<?= CURRENCY ?>)</label><input id="pAmount" type="number" min="1" step="500"></div>
+            <div><label>Total Amount (<?= CURRENCY ?>)</label><input id="pAmount" type="number" min="1" step="500"></div>
+            <div><label>Deposit Paid (<?= CURRENCY ?>)</label><input id="pDeposit" type="number" min="0" step="500" value="0"></div>
+            <div><label>Balance Due (<?= CURRENCY ?>)</label><input id="pBalance" type="number" readonly style="background:#f8fafc; font-weight:bold; color:var(--red);"></div>
             <div><label>Method</label><select id="pMethod"><option>Cash</option><option>Mobile Money</option><option>Card</option></select></div>
             <div><label>Expected Return Date</label><input id="pReturn" type="date"></div>
             
             <div style="grid-column: 1 / -1;">
                 <label>Items Taken / Description</label>
-                <textarea id="pDesc" placeholder="e.g.&#10;1. 2x Microphones&#10;2. 1x Mixer&#10;3. 2x Speakers"></textarea>
+                <textarea id="pDesc" placeholder="e.g.&#10;2x Microphones&#10;1x Mixer&#10;2x Speakers"></textarea>
             </div>
             
             <div style="grid-column: 1 / -1; display: flex; gap: 10px;">
@@ -120,12 +121,14 @@ $active = 'pa_system';
                         <th>Customer / Event</th>
                         <th>Items Taken</th>
                         <th>Received By</th>
-                        <th class="num">Amount (<?= CURRENCY ?>)</th>
+                        <th class="num">Total (<?= CURRENCY ?>)</th>
+                        <th class="num">Deposit (<?= CURRENCY ?>)</th>
+                        <th class="num">Balance (<?= CURRENCY ?>)</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="pTbody">
-                    <tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">Loading...</td></tr>
+                    <tr><td colspan="9" style="text-align:center; color:#64748b; padding:20px;">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -135,10 +138,23 @@ $active = 'pa_system';
 <div class="modal" id="done"><div class="box">
     <h3>Collection Saved</h3>
     <div>Customer: <b id="dCustomer"></b></div>
-    <div class="big" id="dTotal"></div>
+    <div style="font-size: 0.95rem; margin-top: 6px;">Total: <b id="dTotal"></b></div>
+    <div style="font-size: 0.95rem;">Deposit Paid: <b id="dDeposit" style="color:var(--green);"></b></div>
+    <div class="big" id="dBalance" style="color:var(--red);"></div>
     <div class="row">
         <button class="btn ghost" id="dClose" style="margin:0">Done</button>
         <button class="btn primary" id="dPrint" style="margin:0">Print Receipt</button>
+    </div>
+</div></div>
+
+<div class="modal" id="clearModal"><div class="box">
+    <h3>Clear Pending Balance</h3>
+    <div>Customer: <b id="cbCustomer"></b></div>
+    <div class="big" id="cbBalance" style="color:var(--red);"></div>
+    <p style="font-size:0.85rem; color:var(--muted);">Clearing this will record the remaining balance as a deposit payment and settle the balance to 0.</p>
+    <div class="row">
+        <button class="btn ghost" onclick="$('clearModal').classList.remove('open')" style="margin:0">Cancel</button>
+        <button class="btn primary" id="cbConfirm" style="margin:0">Confirm Clearance</button>
     </div>
 </div></div>
 
@@ -152,6 +168,16 @@ const apiUrl = './api/pa_system.php';
 
 const hint = (t, k='') => { $('pHint').textContent = t; $('pHint').className = 'hint ' + k; };
 
+function calculateBalance() {
+    const total = parseFloat($('pAmount').value) || 0;
+    const deposit = parseFloat($('pDeposit').value) || 0;
+    const balance = total - deposit;
+    $('pBalance').value = balance >= 0 ? balance.toFixed(2) : '0.00';
+}
+
+$('pAmount').addEventListener('input', calculateBalance);
+$('pDeposit').addEventListener('input', calculateBalance);
+
 async function loadData() {
     try {
         const r = await (await fetch(apiUrl + '?action=list')).json();
@@ -161,13 +187,16 @@ async function loadData() {
         $('statMonth').textContent = fmt(r.month);
 
         if (!r.rows.length) {
-            $('pTbody').innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No collections recorded yet.</td></tr>';
+            $('pTbody').innerHTML = '<tr><td colspan="9" style="text-align:center; color:#64748b; padding:20px;">No collections recorded yet.</td></tr>';
             return;
         }
 
         $('pTbody').innerHTML = r.rows.map(x => {
             const desc = x.description ? `<div class="pre-wrap">${esc(x.description)}</div>` : '—';
             const retDate = x.return_date ? new Date(x.return_date).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : '—';
+            const clearBtn = Number(x.balance) > 0 
+                ? `<button class="btn sm primary" onclick="openClearModal(${x.id}, '${esc(x.customer_name)}', ${x.balance})" style="margin-right:4px;">Clear Balance</button>` 
+                : '';
             
             return `
             <tr>
@@ -176,8 +205,11 @@ async function loadData() {
                 <td data-label="Customer"><b>${esc(x.customer_name)}</b></td>
                 <td data-label="Items Taken">${desc}</td>
                 <td data-label="Received By">${esc(x.full_name)}</td>
-                <td class="num" data-label="Amount"><b style="color:var(--green)">${fmt(x.amount)}</b></td>
+                <td class="num" data-label="Total"><b>${fmt(x.amount)}</b></td>
+                <td class="num" data-label="Deposit"><b style="color:var(--green)">${fmt(x.deposit)}</b></td>
+                <td class="num" data-label="Balance"><b style="color:${x.balance > 0 ? 'var(--red)' : 'inherit'}">${fmt(x.balance)}</b></td>
                 <td data-label="Action">
+                    ${clearBtn}
                     <button class="btn sm dark" onclick="showModal(${x.id})">Print</button>
                 </td>
             </tr>
@@ -190,10 +222,11 @@ $('pCancel').onclick = () => {
     $('pCustomer').value = '';
     $('pDesc').value = '';
     $('pAmount').value = '';
+    $('pDeposit').value = '0';
+    $('pBalance').value = '';
     $('pReturn').value = '';
     hint('');
     $('pCustomer').focus();
-    showToast('Form cleared.');
 };
 
 $('pSave').onclick = async () => {
@@ -201,6 +234,8 @@ $('pSave').onclick = async () => {
         customer_name: $('pCustomer').value,
         description: $('pDesc').value,
         amount: $('pAmount').value,
+        deposit: $('pDeposit').value || 0,
+        balance: $('pBalance').value || 0,
         payment_method: $('pMethod').value,
         return_date: $('pReturn').value
     };
@@ -222,8 +257,12 @@ $('pSave').onclick = async () => {
             hint(r.error, 'bad'); 
         } else {
             hint('', '');
-            showToast('Record saved successfully!');
-            $('pCustomer').value = ''; $('pDesc').value = ''; $('pAmount').value = ''; $('pReturn').value = '';
+            $('pCustomer').value = ''; 
+            $('pDesc').value = ''; 
+            $('pAmount').value = ''; 
+            $('pDeposit').value = '0';
+            $('pBalance').value = '';
+            $('pReturn').value = '';
             
             await loadData();
             showModal(r.id);
@@ -246,6 +285,8 @@ async function showModal(id) {
 
     $('dCustomer').textContent = data.customer_name;
     $('dTotal').textContent = CUR + ' ' + fmt(data.amount);
+    $('dDeposit').textContent = CUR + ' ' + fmt(data.deposit);
+    $('dBalance').textContent = 'Balance Due: ' + CUR + ' ' + fmt(data.balance);
     $('done').classList.add('open');
 }
 
@@ -256,6 +297,40 @@ $('dClose').onclick = () => {
 $('dPrint').onclick = () => {
     printReceipt(currentPrintId);
     $('done').classList.remove('open');
+};
+
+let activeClearId = null;
+
+function openClearModal(id, customer, balance) {
+    activeClearId = id;
+    $('cbCustomer').textContent = customer;
+    $('cbBalance').textContent = CUR + ' ' + fmt(balance);
+    $('clearModal').classList.add('open');
+}
+
+$('cbConfirm').onclick = async () => {
+    $('cbConfirm').disabled = true;
+    $('cbConfirm').textContent = 'Processing...';
+
+    try {
+        const res = await fetch(apiUrl + '?action=clear_balance', {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json', 'X-CSRF': CSRF }, 
+            body: JSON.stringify({ id: activeClearId })
+        });
+        const r = await res.json();
+        if (r.error) {
+            alert(r.error);
+        } else {
+            $('clearModal').classList.remove('open');
+            loadData();
+        }
+    } catch (e) {
+        alert('Network error.');
+    }
+
+    $('cbConfirm').disabled = false;
+    $('cbConfirm').textContent = 'Confirm Clearance';
 };
 
 async function printReceipt(id) {
@@ -273,36 +348,77 @@ async function printReceipt(id) {
         <head>
             <title>PA Receipt - ${esc(data.customer_name)}</title>
             <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; color: #0f172a; display: flex; flex-direction: column; align-items: center; }
-                .rc { width: 340px; border: 1px dashed #94a3b8; padding: 18px; font-size: 13px; }
-                .rc h1 { margin: 0; text-align: center; font-size: 18px; } 
-                .rc .c { text-align: center; color: #64748b; margin: 2px 0; }
-                hr { border: 0; border-top: 1px dashed #94a3b8; margin: 10px 0; }
-                table { width: 100%; border-collapse: collapse; } td { padding: 4px 0; vertical-align: top; } .r { text-align: right; }
-                .tot { display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; margin-top: 8px; }
-                .desc { white-space: pre-wrap; font-size: 13px; line-height: 1.4; margin: 10px 0; }
-                @media print { .bar { display: none; } body { margin: 0; } .rc { border: 0; } }
+                @page { size: 80mm auto; margin: 0; }
+                body { 
+                    font-family: 'Segoe UI', Arial, sans-serif; 
+                    margin: 0; 
+                    padding: 10px; 
+                    color: #0f172a; 
+                    background: #fff; 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: flex-start;
+                }
+                .rc { 
+                    width: 76mm; 
+                    padding: 12px; 
+                    font-size: 12px; 
+                    background: #fff; 
+                    border: 1px solid #e2e8f0;
+                    border-radius: 6px;
+                }
+                .logo-container { text-align: center; margin-bottom: 8px; }
+                .logo-container img { 
+                    width: 60px; 
+                    height: 60px; 
+                    border-radius: 50%; 
+                    object-fit: cover; 
+                    border: 2px solid #cbd5e1; 
+                }
+                .rc h1 { margin: 0 0 2px; text-align: center; font-size: 15px; font-weight: 800; color: #0f172a; } 
+                .rc .sub-header { text-align: center; font-size: 10px; color: #475569; line-height: 1.4; margin-bottom: 8px; }
+                .rc .badge { text-align: center; font-weight: 700; font-size: 11px; background: #f1f5f9; padding: 4px; border-radius: 4px; margin: 6px 0; color: #334155; text-transform: uppercase; }
+                .rc .c { text-align: center; color: #64748b; margin: 2px 0; font-size: 10px; }
+                hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 8px 0; }
+                table { width: 100%; border-collapse: collapse; } td { padding: 3px 0; vertical-align: top; font-size: 11px; } .r { text-align: right; }
+                .tot { display: flex; justify-content: space-between; font-weight: 700; font-size: 12px; margin-top: 5px; }
+                .desc { white-space: pre-wrap; font-size: 11px; line-height: 1.4; margin: 5px 0; background: #f8fafc; padding: 6px; border-radius: 4px; border: 1px solid #e2e8f0; }
+                .footer-note { text-align: center; font-size: 10px; color: #64748b; margin-top: 10px; font-style: italic; }
+                @media print { 
+                    body { padding: 0; background: #fff; display: block; } 
+                    .rc { border: none; border-radius: 0; width: 72mm; padding: 0; margin: 0 auto; box-shadow: none; } 
+                }
             </style>
         </head>
         <body>
             <div class="rc">
-                <h1>Business Manager</h1>
-                <div class="c">PA System Hire Receipt</div>
+                <h1>BIG WALLET LOUNGE - BALA</h1>
+                <div class="sub-header">
+                    Te-Cambia B, Bala Town Council, Kole District<br>
+                    WhatsApp: +211925830541 | Tel: 0787072542<br>
+                    Email: info@bigwalletlounge.com
+                </div>
+                <div class="logo-container">
+                    <img src="logo.png" alt="Logo">
+                </div>
+                <div class="badge">PA System Hire Receipt</div>
                 <div class="c">Date: ${new Date(data.created_at.replace(' ', 'T')).toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true})}</div>
                 <hr>
                 <table>
-                    <tr><td>Customer / Event:</td><td class="r"><b>${esc(data.customer_name)}</b></td></tr>
-                    <tr><td>Received By:</td><td class="r">${esc(data.full_name)}</td></tr>
+                    <tr><td>Customer:</td><td class="r"><b>${esc(data.customer_name)}</b></td></tr>
+                    <tr><td>Staff:</td><td class="r">${esc(data.full_name)}</td></tr>
                     <tr><td>Method:</td><td class="r">${esc(data.payment_method)}</td></tr>
-                    <tr><td>Return Date:</td><td class="r"><b>${retDate}</b></td></tr>
+                    <tr><td>Return:</td><td class="r"><b>${retDate}</b></td></tr>
                 </table>
                 <hr>
-                <div><b>Items Taken / Details:</b></div>
+                <div style="font-weight:700; margin-bottom:2px; font-size:11px;">Items Taken / Details:</div>
                 <div class="desc">${esc(data.description || 'No description provided.')}</div>
                 <hr>
-                <div class="tot"><span>TOTAL</span><span>${CUR} ${fmt(data.amount)}</span></div>
+                <div class="tot"><span>TOTAL AMOUNT:</span><span>${CUR} ${fmt(data.amount)}</span></div>
+                <div class="tot"><span>DEPOSIT PAID:</span><span style="color:#16a34a;">${CUR} ${fmt(data.deposit)}</span></div>
+                <div class="tot" style="color:#dc2626;"><span>BALANCE DUE:</span><span>${CUR} ${fmt(data.balance)}</span></div>
                 <hr>
-                <div class="c">Thank you!</div>
+                <div class="footer-note">Thank you for doing business with Big Wallet Lounge!</div>
             </div>
             <script>
                 window.onload = function() { window.print(); }
