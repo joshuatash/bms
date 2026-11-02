@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Big Wallet Lounge Management Information System | Bar, Lodge & Hire Services</title>
-    
+
     <!-- FAVICON USING logo.png DIRECTLY -->
     <link rel="icon" type="image/png" href="logo.png">
     <link rel="shortcut icon" type="image/png" href="logo.png">
-    
+
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,75 +18,287 @@
     <link rel="apple-touch-icon" href="logo.png">
 
     <style>
-        :root { 
-            --navy: #0f172a; --slate: #334155; --muted: #94a3b8; --amber: #f59e0b; --bg: #f8fafc;
+        :root {
+            --navy: #0f172a;
+            --slate: #334155;
+            --muted: #94a3b8;
+            --amber: #f59e0b;
+            --bg: #f8fafc;
         }
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--navy); line-height: 1.6; }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--navy);
+            line-height: 1.6;
+        }
 
         /* Hero Section */
-        .hero { background: linear-gradient(135deg, var(--navy) 0%, var(--slate) 100%); color: #fff; padding: 100px 5% 80px; text-align: center; }
-        .hero img { height: 120px; width: 120px; border-radius: 50%; border: 4px solid var(--amber); background: #fff; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        .hero h1 { font-size: 2.5rem; margin: 0 0 10px; letter-spacing: -1px; line-height: 1.2; }
-        .hero p { font-size: 1.2rem; color: #cbd5e1; max-width: 600px; margin: 0 auto 30px; }
-        
-        .hero-buttons { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
-        
-        .btn-hero { background: var(--amber); color: var(--navy); padding: 15px 40px; border-radius: 8px; text-decoration: none; font-weight: 800; font-size: 1.1rem; transition: 0.2s; display: inline-block; border: 0; cursor: pointer; }
-        .btn-hero:hover { background: #d97706; color: #fff; transform: translateY(-2px); }
-        
+        .hero {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--slate) 100%);
+            color: #fff;
+            padding: 100px 5% 80px;
+            text-align: center;
+        }
+
+        .hero img {
+            height: 120px;
+            width: 120px;
+            border-radius: 50%;
+            border: 4px solid var(--amber);
+            background: #fff;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin: 0 0 10px;
+            letter-spacing: -1px;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: #cbd5e1;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-hero {
+            background: var(--amber);
+            color: var(--navy);
+            padding: 15px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.1rem;
+            transition: 0.2s;
+            display: inline-block;
+            border: 0;
+            cursor: pointer;
+        }
+
+        .btn-hero:hover {
+            background: #d97706;
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
         /* PWA Install Button */
-        #installBtn { background: #fff; color: var(--navy); padding: 15px 40px; border-radius: 8px; font-weight: 800; font-size: 1.1rem; transition: 0.2s; display: inline-block; border: 2px solid var(--amber); cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        #installBtn:hover { background: #e2e8f0; transform: translateY(-2px); }
+        #installBtn {
+            background: #fff;
+            color: var(--navy);
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            transition: 0.2s;
+            display: inline-block;
+            border: 2px solid var(--amber);
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        #installBtn:hover {
+            background: #e2e8f0;
+            transform: translateY(-2px);
+        }
 
         /* Services Section */
-        .section-title { text-align: center; margin: 60px 0 40px; font-size: 2rem; }
-        .services { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 25px; padding: 0 5% 60px; max-width: 1200px; margin: 0 auto; }
-        .service-card { background: #fff; padding: 30px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-top: 5px solid var(--amber); transition: 0.3s; }
-        .service-card:hover { transform: translateY(-5px); box-shadow: 0 15px 25px -5px rgba(0,0,0,0.1); }
-        .service-card h3 { margin: 0 0 10px; font-size: 1.3rem; }
-        .service-card p { color: var(--slate); margin: 0; font-size: 0.95rem; }
+        .section-title {
+            text-align: center;
+            margin: 60px 0 40px;
+            font-size: 2rem;
+        }
+
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            padding: 0 5% 60px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .service-card {
+            background: #fff;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border-top: 5px solid var(--amber);
+            transition: 0.3s;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .service-card h3 {
+            margin: 0 0 10px;
+            font-size: 1.3rem;
+        }
+
+        .service-card p {
+            color: var(--slate);
+            margin: 0;
+            font-size: 0.95rem;
+        }
 
         /* Contact Section */
-        .contact-section { background: var(--navy); color: #fff; padding: 60px 5%; }
-        .contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 30px; max-width: 1000px; margin: 0 auto; text-align: center; }
-        .contact-item h4 { color: var(--amber); margin: 0 0 8px; font-size: 1.1rem; }
-        .contact-item p { margin: 0; color: #cbd5e1; font-size: 1.05rem; }
-        .contact-item a { color: #fff; text-decoration: none; font-weight: bold; }
-        .contact-item a:hover { color: var(--amber); }
+        .contact-section {
+            background: var(--navy);
+            color: #fff;
+            padding: 60px 5%;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .contact-item h4 {
+            color: var(--amber);
+            margin: 0 0 8px;
+            font-size: 1.1rem;
+        }
+
+        .contact-item p {
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 1.05rem;
+        }
+
+        .contact-item a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .contact-item a:hover {
+            color: var(--amber);
+        }
 
         /* Footer */
-        footer { background: #020617; color: var(--muted); text-align: center; padding: 20px; font-size: 0.9rem; }
-        footer a { color: var(--amber); text-decoration: none; }
+        footer {
+            background: #020617;
+            color: var(--muted);
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--amber);
+            text-decoration: none;
+        }
 
         /* --- CUSTOM INSTALL DIALOG MODAL --- */
-        .install-modal { position: fixed; inset: 0; background: rgba(15,23,42,.7); display: none; place-items: center; z-index: 9999; padding: 20px; }
-        .install-modal.open { display: grid; }
-        .install-modal .box { background: #fff; border-radius: 16px; padding: 28px; width: min(400px, 100%); text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-        .install-modal h3 { margin: 0 0 10px; color: var(--navy); font-size: 1.3rem; }
-        .install-modal p { margin: 0 0 20px; color: var(--slate); font-size: 0.95rem; text-align: left; line-height: 1.6; }
-        .install-modal .icon { font-size: 40px; margin-bottom: 15px; }
-        .install-modal .btn { background: var(--amber); color: var(--navy); border: 0; border-radius: 8px; padding: 12px 20px; font-weight: 700; width: 100%; cursor: pointer; font-size: 1rem; }
-        
+        .install-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, .7);
+            display: none;
+            place-items: center;
+            z-index: 9999;
+            padding: 20px;
+        }
+
+        .install-modal.open {
+            display: grid;
+        }
+
+        .install-modal .box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 28px;
+            width: min(400px, 100%);
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .install-modal h3 {
+            margin: 0 0 10px;
+            color: var(--navy);
+            font-size: 1.3rem;
+        }
+
+        .install-modal p {
+            margin: 0 0 20px;
+            color: var(--slate);
+            font-size: 0.95rem;
+            text-align: left;
+            line-height: 1.6;
+        }
+
+        .install-modal .icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .install-modal .btn {
+            background: var(--amber);
+            color: var(--navy);
+            border: 0;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-weight: 700;
+            width: 100%;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
         @media (max-width: 768px) {
-            .hero { padding: 60px 5% 50px; }
-            .hero h1 { font-size: 2rem; }
+            .hero {
+                padding: 60px 5% 50px;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
         }
 
         @media (max-width: 640px) {
-            .hero h1 { font-size: 1.8rem; }
-            .hero-buttons { flex-direction: column; }
-            .btn-hero, #installBtn { width: 100%; }
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .btn-hero,
+            #installBtn {
+                width: 100%;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <section class="hero">
         <img src="logo.png" alt="Big Wallet Lounge Logo">
         <h1>Big Wallet Lounge Management Information System</h1>
         <p>Your premier destination for relaxation, entertainment, and professional event services.</p>
-        
+
         <div class="hero-buttons">
             <a href="login.php" class="btn-hero">Employee Portal Login</a>
             <button id="installBtn">📲 Install App</button>
@@ -94,25 +307,53 @@
 
     <h2 class="section-title">Our Services</h2>
     <section class="services">
-        <div class="service-card"><h3>Bar & Restaurant</h3><p>Enjoy a wide selection of drinks and freshly prepared meals in a welcoming atmosphere.</p></div>
-        <div class="service-card"><h3>Lodge & Accommodation</h3><p>Comfortable, secure, and affordable rooms for short or long stays.</p></div>
-        <div class="service-card"><h3>Ground Hire</h3><p>Spacious grounds perfect for weddings, parties, and corporate events.</p></div>
-        <div class="service-card"><h3>PA System Hire</h3><p>High-quality public address systems and sound equipment for your events.</p></div>
-        <div class="service-card"><h3>Washing Bay</h3><p>Professional car wash and detailing services to keep your vehicle spotless.</p></div>
+        <div class="service-card">
+            <h3>Bar & Restaurant</h3>
+            <p>Enjoy a wide selection of drinks and freshly prepared meals in a welcoming atmosphere.</p>
+        </div>
+        <div class="service-card">
+            <h3>Lodge & Accommodation</h3>
+            <p>Comfortable, secure, and affordable rooms for short or long stays.</p>
+        </div>
+        <div class="service-card">
+            <h3>Ground Hire</h3>
+            <p>Spacious grounds perfect for weddings, parties, and corporate events.</p>
+        </div>
+        <div class="service-card">
+            <h3>PA System Hire</h3>
+            <p>High-quality public address systems and sound equipment for your events.</p>
+        </div>
+        <div class="service-card">
+            <h3>Washing Bay</h3>
+            <p>Professional car wash and detailing services to keep your vehicle spotless.</p>
+        </div>
     </section>
 
     <section class="contact-section">
         <h2 style="text-align: center; margin-top: 0; margin-bottom: 40px;">Contact Us</h2>
         <div class="contact-grid">
-            <div class="contact-item"><h4>Location</h4><p>Te-Cambia, Main Market, Bala Town Council, Kole District</p></div>
-            <div class="contact-item"><h4>Call Us</h4><p><a href="tel:0787072542">0787 072 542</a></p></div>
-            <div class="contact-item"><h4>WhatsApp</h4><p><a href="https://wa.me/211925830541" target="_blank">+211 925 830 541</a></p></div>
-            <div class="contact-item"><h4>Email</h4><p><a href="mailto:info@bigwalletlounge.com">info@bigwalletlounge.com</a></p></div>
+            <div class="contact-item">
+                <h4>Location</h4>
+                <p>Te-Cambia, Main Market, Bala Town Council, Kole District</p>
+            </div>
+            <div class="contact-item">
+                <h4>Call Us</h4>
+                <p><a href="tel:0787072542">0787 072 542</a></p>
+            </div>
+            <div class="contact-item">
+                <h4>WhatsApp</h4>
+                <p><a href="https://wa.me/211925830541" target="_blank">+211 925 830 541</a></p>
+            </div>
+            <div class="contact-item">
+                <h4>Email</h4>
+                <p><a href="mailto:info@bigwalletlounge.com">info@bigwalletlounge.com</a></p>
+            </div>
         </div>
     </section>
 
     <footer>
-        <p>&copy; 2026 Big Wallet Lounge Management Information System. All rights reserved. | <a href="privacy.php">Privacy Policy</a></p>
+        <p>&copy; 2026 Big Wallet Lounge Management Information System. All rights reserved. | <a
+                href="privacy.php">Privacy Policy</a></p>
     </footer>
 
     <!-- CUSTOM INSTALL DIALOG -->
@@ -148,10 +389,10 @@
                 { "src": "logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
             ]
         };
-        
-        const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
         const manifestURL = URL.createObjectURL(blob);
-        
+
         const link = document.createElement('link');
         link.rel = 'manifest';
         link.href = manifestURL;
@@ -161,8 +402,8 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js')
-                .then(reg => console.log('SW Registered', reg))
-                .catch(err => console.log('SW Failed', err));
+                    .then(reg => console.log('SW Registered', reg))
+                    .catch(err => console.log('SW Failed', err));
             });
         }
 
@@ -173,7 +414,7 @@
 
         // Hide install button if already installed as a standalone app
         if (window.matchMedia('(display-mode: standalone)').matches) {
-            if(installBtn) installBtn.style.display = 'none';
+            if (installBtn) installBtn.style.display = 'none';
         }
 
         // Detect iOS
@@ -186,7 +427,7 @@
         });
 
         // Button click
-        if(installBtn) {
+        if (installBtn) {
             installBtn.addEventListener('click', async () => {
                 if (isIOS || !deferredPrompt) {
                     installModal.classList.add('open');
@@ -204,7 +445,7 @@
         }
 
         // Close modal
-        if(closeModal) {
+        if (closeModal) {
             closeModal.addEventListener('click', () => {
                 installModal.classList.remove('open');
             });
@@ -212,10 +453,11 @@
 
         // Hide button if installed
         window.addEventListener('appinstalled', () => {
-            if(installBtn) installBtn.style.display = 'none';
+            if (installBtn) installBtn.style.display = 'none';
             installModal.classList.remove('open');
             console.log('PWA was installed');
         });
     </script>
 </body>
+
 </html>

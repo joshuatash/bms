@@ -1,13 +1,12 @@
 <?php
 require __DIR__ . '/config.php';
-require_hr(); // Restricts this page to ONLY the HR user
-
+require_hr(); // Restricts this page to ONLY the HR user[cite: 4]
 $user = current_user();
 $active = 'hr_dashboard';
-
 $passError = '';
 $passSuccess = '';
 $logSuccess = '';
+$backupError = '';
 
 // Handle HR Password Change
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'change_my_password') {
@@ -15,7 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'change_my
     $new = (string)($_POST['new_password'] ?? '');
     $confirm = (string)($_POST['confirm_password'] ?? '');
     $csrf = (string)($_POST['csrf'] ?? '');
-
     if (!hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
         $passError = 'Your session expired. Reload the page and try again.';
     } elseif ($new !== $confirm) {
@@ -27,7 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'change_my
         $ps = $pdo->prepare("SELECT password_hash FROM users WHERE user_id = ?");
         $ps->execute([$user['user_id']]);
         $hash = (string)$ps->fetchColumn();
-
         if (!$hash || !password_verify($current, $hash)) {
             $passError = 'Your current password is incorrect.';
             log_activity('password_change_failed', 'Wrong current password provided');
@@ -46,7 +43,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'clear_log
     if (hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
         $pdo = db();
         $pdo->exec("TRUNCATE TABLE activity_log");
+        log_activity('clear_logs', 'Cleared all system activity logs');
         $logSuccess = 'Activity logs cleared successfully.';
+    }
+}
+
+// Handle Database Backup Export
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'backup_database') {
+    $csrf = (string)($_POST['csrf'] ?? '');
+    if (hash_equals($_SESSION['csrf'] ?? '', $csrf)) {
+        try {
+            $pdo = db();
+            $tables = [];
+            $result = $pdo->query("SHOW TABLES");
+            while ($row = $result->fetch(PDO::FETCH_NUM)) {
+                $tables[] = $row[0];
+            }
+
+            $sql = "-- Big Wallet System Database Backup\n";
+            $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n";
+            $sql .= "-- Authorized HR: " . $user['username'] . "\n\n";
+            $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
+
+            foreach ($tables as $table) {
+                $row = $pdo->query("SHOW CREATE TABLE `$table`")->fetch(PDO::FETCH_NUM);
+                $sql .= "\n\n" . $row[1] . ";\n\n";
+
+                $rows = $pdo->query("SELECT * FROM `$table`")->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $r) {
+                    $cols = array_keys($r);
+                    $vals = array_values($r);
+                    
+                    $escaped_cols = array_map(fn($c) => "`$c`", $cols);
+                    $escaped_vals = array_map(function($v) use ($pdo) {
+                        if ($v === null) return "NULL";
+                        return $pdo->quote($v);
+                    }, $vals);
+
+                    $sql .= "INSERT INTO `$table` (" . implode(', ', $escaped_cols) . ") VALUES (" . implode(', ', $escaped_vals) . ");\n";
+                }
+            }
+            $sql .= "\nSET FOREIGN_KEY_CHECKS=1;\n";
+
+            log_activity('database_backup', 'HR downloaded database backup file');
+
+            $filename = 'bigwallet_backup_' . date('Y-m-d_H-i-s') . '.sql';
+            header('Content-Type: application/sql; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Content-Length: ' . strlen($sql));
+            echo $sql;
+            exit;
+        } catch (Exception $e) {
+            $backupError = 'Failed to generate backup: ' . $e->getMessage();
+        }
+    } else {
+        $backupError = 'Your session expired. Reload the page and try again.';
     }
 }
 
@@ -58,7 +109,6 @@ $logs = $pdo->query("
     ORDER BY created_at DESC 
     LIMIT 50
 ")->fetchAll(PDO::FETCH_ASSOC);
-
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -98,7 +148,6 @@ $logs = $pdo->query("
         .alert { padding: 14px 16px; border-radius: 10px; font-weight: 600; margin-bottom: 16px; font-size: 0.92rem; }
         .alert.ok { background: #dcfce7; color: #166534; }
         .alert.err { background: #fee2e2; color: #991b1b; }
-
         /* ── Standard table (User Management) ── */
         .tablewrap { overflow-x: auto; margin: 0 -22px -22px; padding: 0 22px; }
         table { width: 100%; border-collapse: collapse; font-size: .9rem; }
@@ -114,15 +163,12 @@ $logs = $pdo->query("
         .action-group { display: flex; gap: 6px; flex-wrap: wrap; }
         .pending-alert { background: #fef3c7; border: 1px solid #fde68a; padding: 8px; border-radius: 6px; width: 100%; margin-bottom: 4px; }
         .pending-alert p { margin: 0 0 6px; font-size: 0.75rem; color: #92400e; font-weight: 700; text-transform: uppercase; }
-
         /* ── ONLINE DOT ANIMATION ── */
         .online-dot { display: inline-block; width: 10px; height: 10px; background-color: var(--green); border-radius: 50%; margin-right: 6px; box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); animation: pulse 1.5s infinite; flex-shrink: 0; }
         @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); } }
-
         /* ── ACTIVE SESSIONS — desktop table ── */
         .sessions-table th { background: #0f172a; color: #fff; border-bottom: none; }
         .sessions-table td { font-size: 0.85rem; }
-
         /* ── ACTIVE SESSIONS — mobile card stack ── */
         .session-cards { display: none; flex-direction: column; gap: 12px; }
         .session-card { background: #f8fafc; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
@@ -131,7 +177,6 @@ $logs = $pdo->query("
         .session-card-rows { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: .82rem; margin-bottom: 12px; }
         .session-card-label { color: var(--muted); font-weight: 600; white-space: nowrap; padding-top: 1px; }
         .session-card-value { color: var(--slate); word-break: break-all; }
-
         /* ── MODERN TIMELINE ── */
         .timeline { position: relative; padding-left: 10px; margin-top: 10px; }
         .timeline::before { content: ''; position: absolute; top: 0; bottom: 0; left: 20px; width: 2px; background: var(--line); }
@@ -157,29 +202,18 @@ $logs = $pdo->query("
         .action-tag.create, .action-tag.register, .action-tag.approved { background: #dbeafe; color: #1e40af; }
         .action-tag.update, .action-tag.enable { background: #fef3c7; color: #92400e; }
         .action-tag.default { background: #e2e8f0; color: var(--slate); }
-
         /* ── RESPONSIVE BREAKPOINTS ── */
         @media (max-width: 640px) {
             main { padding: 0 12px 32px; margin: 14px auto; gap: 14px; }
             .head h2 { font-size: 1.3rem; }
-
-            /* Form grid collapses to 1 column */
             .grid { grid-template-columns: 1fr; }
             .grid-full { grid-column: span 1; }
-
-            /* Card inner padding tighter */
             .card { padding: 16px; }
             .card-head { margin-bottom: 14px; padding-bottom: 12px; }
-
-            /* Standard table — keep horizontal scroll but tighten */
             .tablewrap { margin: 0 -16px -16px; padding: 0 16px; }
             th, td { padding: 10px 8px; }
-
-            /* Sessions: hide table, show cards */
             .sessions-tablewrap { display: none; }
             .session-cards { display: flex; }
-
-            /* Timeline tighter on mobile */
             .timeline::before { left: 16px; }
             .timeline-item { padding-left: 38px; }
             .timeline-dot { left: 8px; }
@@ -188,14 +222,12 @@ $logs = $pdo->query("
             .timeline-content { padding: 12px; }
             .timeline-body { font-size: .88rem; }
         }
-
         @media (max-width: 400px) {
             main { padding: 0 8px 24px; margin: 8px auto; }
             .card { padding: 12px; }
             .session-card-rows { grid-template-columns: 1fr; }
             .session-card-label { font-weight: 700; }
         }
-
         /* ── TOAST NOTIFICATIONS ── */
         #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
         .toast { display: flex; align-items: center; gap: 12px; min-width: 280px; max-width: 380px; padding: 14px 18px; border-radius: 14px; font-size: .92rem; font-weight: 600; color: #fff; box-shadow: 0 8px 28px rgba(15,23,42,.18); pointer-events: all; animation: toast-in .3s cubic-bezier(.34,1.56,.64,1) forwards; }
@@ -210,7 +242,6 @@ $logs = $pdo->query("
         .toast-close:hover { color: #fff; background: rgba(255,255,255,.15); }
         @keyframes toast-in { from { opacity: 0; transform: translateX(60px) scale(.9); } to { opacity: 1; transform: translateX(0) scale(1); } }
         @keyframes toast-out { from { opacity: 1; transform: translateX(0) scale(1); } to { opacity: 0; transform: translateX(60px) scale(.9); } }
-
         /* ── CONFIRM MODAL ── */
         .modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.55); backdrop-filter: blur(3px); z-index: 10000; display: grid; place-items: center; padding: 20px; opacity: 0; animation: fade-in .2s ease forwards; }
         .modal-backdrop.hiding { animation: fade-out .2s ease forwards; }
@@ -228,11 +259,8 @@ $logs = $pdo->query("
         @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
         @keyframes modal-in { from { transform: scale(.92) translateY(16px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
         @keyframes modal-out { from { transform: scale(1) translateY(0); opacity: 1; } to { transform: scale(.92) translateY(16px); opacity: 0; } }
-
-        /* Tick animation */
         .tick-circle { stroke: #fff; stroke-width: 2.5; fill: none; stroke-dasharray: 50; stroke-dashoffset: 50; animation: tick-draw .4s .1s ease forwards; }
         @keyframes tick-draw { to { stroke-dashoffset: 0; } }
-
         @media (max-width: 480px) {
             #toast-container { bottom: 16px; right: 12px; left: 12px; }
             .toast { min-width: unset; max-width: 100%; }
@@ -241,13 +269,12 @@ $logs = $pdo->query("
 </head>
 <body>
 <?php include __DIR__ . '/includes/header.php'; ?>
-
 <main>
     <div class="head">
         <h2>HR &amp; Security Dashboard</h2>
-        <p class="sub">Manage system accounts, monitor activity, and track live sessions.</p>
+        <p class="sub">Manage system accounts, database backups, monitor activity, and track live sessions.</p>
     </div>
-
+    
     <!-- 1. MANAGE USERS -->
     <section class="card">
         <div class="card-head">
@@ -274,7 +301,6 @@ $logs = $pdo->query("
             <div class="grid-full"><button class="btn primary" id="save">Create Account</button></div>
         </div>
         <div class="hint" id="hint" style="margin-top:-10px; margin-bottom:10px;"></div>
-
         <!-- User List -->
         <div class="tablewrap"><table>
             <thead><tr><th>User</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
@@ -284,7 +310,26 @@ $logs = $pdo->query("
         </table></div>
     </section>
 
-    <!-- 2. ACTIVE SESSIONS (WHO IS ONLINE) -->
+    <!-- 2. DATABASE BACKUP (HR ONLY) -->
+    <section class="card">
+        <div class="card-head">
+            <div>
+                <h2>Database Backup</h2>
+                <p>Download a secure SQL export of the entire system database.</p>
+            </div>
+        </div>
+        <?php if ($backupError): ?><div class="alert err"><?= e($backupError) ?></div><?php endif; ?>
+        <form method="post">
+            <input type="hidden" name="do" value="backup_database">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <p style="color:var(--slate); font-size:0.92rem; margin-bottom:16px; line-height:1.5;">
+                Clicking the button below will generate and download an <code>.sql</code> file containing all users, sales, inventory, and system logs. Store this backup securely.
+            </p>
+            <button type="submit" class="btn primary">Download Database Backup (.sql)</button>
+        </form>
+    </section>
+
+    <!-- 3. ACTIVE SESSIONS (WHO IS ONLINE) -->
     <section class="card">
         <div class="card-head">
             <div>
@@ -293,7 +338,6 @@ $logs = $pdo->query("
             </div>
             <button class="btn primary sm" id="refreshSessionsBtn">Refresh</button>
         </div>
-
         <!-- Desktop table -->
         <div class="tablewrap sessions-tablewrap">
             <table class="sessions-table">
@@ -312,14 +356,13 @@ $logs = $pdo->query("
                 </tbody>
             </table>
         </div>
-
         <!-- Mobile card stack -->
         <div class="session-cards" id="sessionCards">
             <p style="color:var(--muted); text-align:center; padding:16px 0;">Loading sessions...</p>
         </div>
     </section>
 
-    <!-- 3. CHANGE PASSWORD -->
+    <!-- 4. CHANGE PASSWORD -->
     <section class="card">
         <div class="card-head">
             <div>
@@ -330,7 +373,6 @@ $logs = $pdo->query("
         
         <?php if ($passSuccess): ?><div class="alert ok"><?= e($passSuccess) ?></div><?php endif; ?>
         <?php if ($passError): ?><div class="alert err"><?= e($passError) ?></div><?php endif; ?>
-
         <form method="post">
             <input type="hidden" name="do" value="change_my_password">
             <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -343,7 +385,7 @@ $logs = $pdo->query("
         </form>
     </section>
 
-    <!-- 4. ACTIVITY LOGS (MODERN TIMELINE) -->
+    <!-- 5. ACTIVITY LOGS (MODERN TIMELINE) -->
     <section class="card">
         <div class="card-head">
             <div>
@@ -356,9 +398,7 @@ $logs = $pdo->query("
                 <button type="button" class="btn danger sm" id="clearLogsBtn">Clear Logs</button>
             </form>
         </div>
-
         <?php if ($logSuccess): ?><div class="alert ok" style="margin-bottom:20px;"><?= e($logSuccess) ?></div><?php endif; ?>
-
         <div class="timeline">
             <?php if (empty($logs)): ?>
                 <p style="color: var(--muted); text-align: center; padding: 20px 0;">No activity recorded yet.</p>
@@ -369,7 +409,7 @@ $logs = $pdo->query("
                     if (strpos($log['action'], 'logout') !== false) $actionClass = 'logout';
                     if (strpos($log['action'], 'reset') !== false || strpos($log['action'], 'delete') !== false || strpos($log['action'], 'rejected') !== false) $actionClass = 'reset';
                     if (strpos($log['action'], 'create') !== false || strpos($log['action'], 'register') !== false || strpos($log['action'], 'approved') !== false) $actionClass = 'create';
-                    if (strpos($log['action'], 'update') !== false || strpos($log['action'], 'enable') !== false) $actionClass = 'update';
+                    if (strpos($log['action'], 'update') !== false || strpos($log['action'], 'enable') !== false || strpos($log['action'], 'backup') !== false) $actionClass = 'update';
                 ?>
                 <div class="timeline-item">
                     <div class="timeline-dot <?= $actionClass ?>"></div>
@@ -394,27 +434,21 @@ $logs = $pdo->query("
             <?php endif; ?>
         </div>
     </section>
-
 </main>
-
 <div id="toast-container"></div>
-
 <script>
 const CSRF = <?= json_encode(csrf_token()) ?>, ME = <?= (int)current_user()['user_id'] ?>;
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const hint = (t, k='') => { $('hint').textContent = t; $('hint').className = 'hint ' + k; };
-
 async function post(action, body) {
     return (await fetch('api/users.php?action=' + action, {method:'POST', headers:{'Content-Type':'application/json','X-CSRF':CSRF}, body:JSON.stringify(body)})).json();
 }
-
 function dateFmt(str) {
     if (!str) return 'N/A';
     const d = new Date(str.replace(' ', 'T'));
     return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
-
 function parseDevice(ua) {
     if (!ua) return "Unknown Device";
     let device = "Unknown Device";
@@ -428,7 +462,6 @@ function parseDevice(ua) {
     else if (ua.includes("Firefox")) device += " (Firefox)";
     return device;
 }
-
 async function loadUsers() {
     try {
         const res = await fetch('api/users.php?action=list');
@@ -439,7 +472,6 @@ async function loadUsers() {
             $('tbody').innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">${rows.error}</td></tr>`;
             return;
         }
-
         $('tbody').innerHTML = rows.map(u => {
             let pendingBox = '';
             if (u.pending_password_hash) {
@@ -452,7 +484,6 @@ async function loadUsers() {
                     </div>
                 </div>`;
             }
-
             let normalActions = '';
             if (u.user_id == ME) {
                 normalActions = '<span style="font-size:.8rem; color:var(--muted); font-weight:600;">Your Account</span>';
@@ -463,7 +494,6 @@ async function loadUsers() {
                     <button class="btn sm danger" data-del="${u.user_id}" data-name="${esc(u.username)}">Delete</button>
                 </div>`;
             }
-
             return `
             <tr>
                 <td>
@@ -484,11 +514,9 @@ async function loadUsers() {
         $('tbody').innerHTML = `<tr><td colspan="4" style="color:red; text-align:center;">Failed to load users: ${err.message}</td></tr>`;
     }
 }
-
 async function loadSessions() {
     $('sessionsBody').innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:20px;">Fetching live locations... (may take 1-2s)</td></tr>`;
     $('sessionCards').innerHTML = `<p style="color:var(--muted); text-align:center; padding:16px 0;">Fetching live locations...</p>`;
-
     try {
         const res = await fetch('api/users.php?action=active_sessions');
         const rows = await res.json();
@@ -498,8 +526,6 @@ async function loadSessions() {
             $('sessionCards').innerHTML = `<p style="color:red; text-align:center;">${rows.error}</p>`;
             return;
         }
-
-        // Desktop table rows
         $('sessionsBody').innerHTML = rows.map(s => {
             const device = parseDevice(s.user_agent);
             return `
@@ -521,8 +547,6 @@ async function loadSessions() {
                 </tr>
             `;
         }).join('');
-
-        // Mobile card stack
         $('sessionCards').innerHTML = rows.length === 0
             ? `<p style="color:var(--muted); text-align:center; padding:16px 0;">No active sessions.</p>`
             : rows.map(s => {
@@ -550,13 +574,11 @@ async function loadSessions() {
                     </div>
                 </div>
             `}).join('');
-
     } catch (err) {
         $('sessionsBody').innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Failed to load sessions.</td></tr>`;
         $('sessionCards').innerHTML = `<p style="color:red; text-align:center;">Failed to load sessions.</p>`;
     }
 }
-
 $('tbody').addEventListener('click', async e => {
     const d = e.target.dataset;
     
@@ -590,8 +612,6 @@ $('tbody').addEventListener('click', async e => {
         loadUsers();
     }
 });
-
-// Shared handler for both desktop tbody and mobile cards
 function handleSessionClick(e) {
     const d = e.target.dataset;
     if (d.kick) {
@@ -612,10 +632,8 @@ function handleSessionClick(e) {
         });
     }
 }
-
 $('sessionsBody').addEventListener('click', handleSessionClick);
 $('sessionCards').addEventListener('click', handleSessionClick);
-
 $('save').onclick = async () => {
     if ($('fPass').value !== $('fPass2').value) { hint('Passwords do not match.', 'bad'); return; }
     if ($('fPass').value.length < 8) { hint('Password must be at least 8 characters.', 'bad'); return; }
@@ -628,15 +646,12 @@ $('save').onclick = async () => {
     ['fName','fUser','fPass','fPass2'].forEach(id => $(id).value = '');
     loadUsers();
 };
-
 $('refreshSessionsBtn').onclick = loadSessions;
-
 function showConfirm({ type = 'danger', title, message, confirmText = 'Confirm', onConfirm }) {
     const icons = {
         danger: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>`,
         warning: `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
     };
-
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
     backdrop.innerHTML = `
@@ -650,34 +665,27 @@ function showConfirm({ type = 'danger', title, message, confirmText = 'Confirm',
             </div>
         </div>
     `;
-
     document.body.appendChild(backdrop);
-
     const close = () => {
         backdrop.classList.add('hiding');
         backdrop.addEventListener('animationend', () => backdrop.remove(), { once: true });
     };
-
     backdrop.querySelector('#modalCancel').addEventListener('click', close);
     backdrop.querySelector('#modalConfirm').addEventListener('click', () => { close(); onConfirm(); });
     backdrop.addEventListener('click', e => { if (e.target === backdrop) close(); });
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } });
 }
-
 function showToast(msg, type = 'success') {
     const container = document.getElementById('toast-container');
-
     const successIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.4)" stroke-width="2" fill="none"/>
         <polyline points="6,12 10,16 18,8" class="tick-circle" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`;
-
     const errorIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.4)" stroke-width="2" fill="none"/>
         <line x1="8" y1="8" x2="16" y2="16" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
         <line x1="16" y1="8" x2="8" y2="16" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
     </svg>`;
-
     const toast = document.createElement('div');
     toast.className = `toast ${type === 'error' ? 'error' : 'success'}`;
     toast.innerHTML = `
@@ -685,22 +693,17 @@ function showToast(msg, type = 'success') {
         <span class="toast-msg">${msg}</span>
         <button class="toast-close" aria-label="Dismiss">&times;</button>
     `;
-
     container.appendChild(toast);
-
     const dismiss = () => {
         toast.classList.add('hiding');
         toast.addEventListener('animationend', () => toast.remove(), { once: true });
     };
-
     toast.querySelector('.toast-close').addEventListener('click', dismiss);
     setTimeout(dismiss, 4000);
 }
-
 document.addEventListener('DOMContentLoaded', () => {
     loadUsers();
     loadSessions();
-
     document.getElementById('clearLogsBtn').addEventListener('click', () => {
         showConfirm({
             type: 'danger',
