@@ -9,7 +9,7 @@ $isHrHdr = $hu['role'] === 'hr';
 $canManage = $isAdminHdr || $isManagerHdr;
 
 // Fallback title if the page didn't define one
-$pageTitle = $pageTitle ?? 'Big Wallet';
+$pageTitle = $pageTitle ?? 'Big Wallet Lounge Management Information System';
 
 $link = fn(string $key, string $href, string $label) =>
     '<a href="' . $href . '" class="' . ($active === $key ? 'active' : '') . '">' . $label . '</a>';
@@ -30,14 +30,14 @@ $link = fn(string $key, string $href, string $label) =>
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Big Wallet">
+    <meta name="apple-mobile-web-app-title" content="Big Wallet LMS">
     <link rel="apple-touch-icon" href="logo.png">
     
     <style>
         body{padding-left:240px}
         .sidebar{position:fixed;top:0;left:0;bottom:0;width:240px;background:#0f172a;color:#cbd5e1;display:flex;flex-direction:column;padding:18px 12px;overflow-y:auto;z-index:50;font-family:'Segoe UI',system-ui,sans-serif;transition:transform .25s ease}
-        .sidebar .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:800;font-size:1.15rem;padding:6px 10px 16px;letter-spacing:.3px}
-        .sidebar .brand img{width:32px;height:32px;border-radius:50%;background:#fff;object-fit:cover}
+        .sidebar .brand{display:flex;align-items:flex-start;gap:10px;color:#fff;text-decoration:none;font-weight:800;font-size:0.95rem;padding:6px 10px 16px;letter-spacing:.3px;line-height:1.3}
+        .sidebar .brand img{width:32px;height:32px;border-radius:50%;background:#fff;object-fit:cover;flex-shrink:0;margin-top:2px}
         .sidebar .brand span{color:#f59e0b}
         .sidebar .label{font-size:.68rem;letter-spacing:1px;text-transform:uppercase;color:#64748b;padding:12px 10px 6px;font-weight:700}
         .sidebar nav{display:flex;flex-direction:column;gap:3px}
@@ -78,10 +78,10 @@ $link = fn(string $key, string $href, string $label) =>
 
         @media(max-width:900px){
             body{padding-left:0;padding-top:56px}
-            .mbar{display:flex;align-items:center;gap:12px;position:fixed;top:0;left:0;right:0;height:56px;background:#0f172a;color:#fff;padding:0 14px;z-index:30;font-family:'Segoe UI',system-ui,sans-serif}
-            .mbar button#navToggle{background:#1e293b;border:0;color:#fff;font-size:1.4rem;line-height:1;width:42px;height:42px;border-radius:8px;cursor:pointer}
-            .mbar .mbar-brand{display:flex;align-items:center;gap:8px;font-size:1.05rem;font-weight:800;}
-            .mbar .mbar-brand img{width:28px;height:28px;border-radius:50%;background:#fff}
+            .mbar{display:flex;align-items:center;gap:10px;position:fixed;top:0;left:0;right:0;height:56px;background:#0f172a;color:#fff;padding:0 14px;z-index:30;font-family:'Segoe UI',system-ui,sans-serif}
+            .mbar button#navToggle{background:#1e293b;border:0;color:#fff;font-size:1.4rem;line-height:1;width:42px;height:42px;border-radius:8px;cursor:pointer;flex-shrink:0}
+            .mbar .mbar-brand{display:flex;align-items:center;gap:8px;font-size:0.85rem;font-weight:800;line-height:1.2;}
+            .mbar .mbar-brand img{width:28px;height:28px;border-radius:50%;background:#fff;flex-shrink:0}
             .mbar .mbar-brand span{color:#f59e0b}
             .sidebar{transform:translateX(-100%);width:260px;box-shadow:6px 0 24px rgba(0,0,0,.35)}
             .sidebar.open{transform:translateX(0)}
@@ -98,7 +98,7 @@ $link = fn(string $key, string $href, string $label) =>
     <button id="navToggle" aria-label="Open menu" aria-expanded="false">&#9776;</button>
     <div class="mbar-brand">
         <img src="logo.png" alt="Big Wallet Logo">
-        Big <span>Wallet</span>
+        <div>Big <span>Wallet</span> Lounge Management Information System</div>
     </div>
     <button id="installBtn">Install App</button>
 </div>
@@ -108,7 +108,7 @@ $link = fn(string $key, string $href, string $label) =>
 <aside class="sidebar" id="sidebar">
   <a class="brand" href="<?= e(home_for($hu['role'])) ?>">
       <img src="logo.png" alt="Big Wallet Logo">
-      Big <span>Wallet</span>
+      <div>Big <span>Wallet</span> Lounge Management Information System</div>
   </a>
   <div class="label">Menu</div>
   <nav>

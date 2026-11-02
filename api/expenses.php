@@ -45,16 +45,31 @@ try {
                 json_out(['error' => 'Only admin and managers can view expenses.'], 403);
             }
             
+            // Determine the date filter based on the selected period
+            $period = $_GET['period'] ?? 'today';
+            $dateCondition = "e.expense_date = CURDATE()"; // Default: Today
+            
+            if ($period === 'week') {
+                // Shows the last 7 days (including today)
+                $dateCondition = "e.expense_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)";
+            } elseif ($period === 'month') {
+                // Shows the last 30 days (including today)
+                $dateCondition = "e.expense_date >= DATE_SUB(CURDATE(), INTERVAL 29 DAY)";
+            } elseif ($period === 'all') {
+                // No date restriction
+                $dateCondition = "1=1";
+            }
+
             $sql = "SELECT e.*, u.full_name AS recorded_by_name 
                     FROM expenses e 
                     JOIN users u ON u.user_id = e.recorded_by 
-                    WHERE e.expense_date = CURDATE() 
+                    WHERE $dateCondition 
                     ORDER BY e.created_at DESC";
             $rows = $pdo->query($sql)->fetchAll();
             $total = array_sum(array_column($rows, 'amount'));
             
-            // Department breakdown totals
-            $deptSql = "SELECT department, SUM(amount) as dept_total FROM expenses WHERE expense_date = CURDATE() GROUP BY department";
+            // Department breakdown totals for the selected period
+            $deptSql = "SELECT department, SUM(amount) as dept_total FROM expenses e WHERE $dateCondition GROUP BY department";
             $deptRows = $pdo->query($deptSql)->fetchAll(PDO::FETCH_KEY_PAIR);
 
             json_out(['ok' => true, 'rows' => $rows, 'total' => $total, 'by_department' => $deptRows]);

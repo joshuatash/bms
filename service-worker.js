@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bigwallet-v1';
+const CACHE_NAME = 'Big Wallet Lounge Management information System-v1';
 const ASSETS = [
   './',
   './index.html',

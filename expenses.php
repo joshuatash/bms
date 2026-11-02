@@ -28,6 +28,13 @@ $canRecord = !$isAdmin;
         .btn { border: 0; border-radius: 8px; padding: 10px 18px; font-weight: 700; cursor: pointer; font-size: .9rem; text-decoration: none; display: inline-block; text-align: center; }
         .btn.primary { background: var(--amber); color: var(--navy); } .btn.primary:hover { background: #d97706; color: #fff; }
         .btn.dark { background: var(--navy); color: #fff; } .btn.dark:hover { background: #1e293b; }
+        
+        /* Filter Tabs */
+        .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        .tab { padding: 8px 16px; border-radius: 8px; background: #f1f5f9; color: var(--slate); border: 1px solid var(--line); font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
+        .tab:hover { background: #e2e8f0; }
+        .tab.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
         .hint { font-size: .85rem; margin-top: 10px; min-height: 1.2em; color: var(--muted); } .hint.good { color: var(--green); } .hint.bad { color: var(--red); font-weight: 600; }
         .tablewrap { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: .92rem; }
@@ -36,6 +43,7 @@ $canRecord = !$isAdmin;
         .num { text-align: right; }
         .printonly { display: none; }
 
+        /* ---------- RESPONSIVE MOBILE VIEW ---------- */
         @media(max-width: 640px) {
             main { padding: 0 12px; margin: 14px auto; gap: 14px; }
             .head { flex-direction: column; align-items: stretch !important; gap: 10px; }
@@ -44,56 +52,88 @@ $canRecord = !$isAdmin;
             .grid { grid-template-columns: 1fr; gap: 12px; }
             .grid > div { grid-column: auto !important; }
             
+            .tabs { justify-content: space-between; }
+            .tab { flex: 1; text-align: center; padding: 10px 4px; font-size: 0.8rem; }
+
+            /* Hide table headers */
             .rt thead { display: none; }
             .rt, .rt tbody, .rt tr, .rt td { display: block; width: 100%; }
-            
-            /* Expense items */
-            .rt tbody tr { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; padding: 6px 10px; background: #f8fafc; }
-            .rt td { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; border: 0; border-bottom: 1px dashed #e2e8f0; padding: 8px 2px; text-align: right; }
-            .rt tbody td:last-child { border-bottom: 0; }
-            .rt td::before { content: attr(data-label); font-weight: 700; font-size: .68rem; text-transform: uppercase; color: var(--muted); text-align: left; flex-shrink: 0; }
-            .rt td[colspan]::before { content: none; } 
-            .rt td[colspan] { display: block; text-align: center; border-bottom: 0; }
 
-            /* Total Row Mobile Layout (Side-by-Side) */
-            .rt tfoot { display: block; width: 100%; }
+            /* Card style for each expense */
+            .rt tbody tr { 
+                border: 1px solid var(--line); 
+                border-radius: 12px; 
+                margin-bottom: 12px; 
+                padding: 10px 14px; 
+                background: #fff; 
+                box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            }
+
+            /* Row alignment */
+            .rt td { 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                border: 0; 
+                border-bottom: 1px dashed #f1f5f9; 
+                padding: 10px 0; 
+                text-align: right; 
+                font-size: 0.9rem;
+            }
+            .rt tbody td:last-child { 
+                border-bottom: 0; 
+                padding-bottom: 4px;
+            }
+
+            /* Labels on the left */
+            .rt td::before { 
+                content: attr(data-label); 
+                font-weight: 700; 
+                font-size: .7rem; 
+                text-transform: uppercase; 
+                color: var(--muted); 
+                text-align: left; 
+                flex-shrink: 0;
+                margin-right: 16px;
+            }
+
+            /* Reset loading state */
+            .rt td[colspan]::before { content: none; } 
+            .rt td[colspan] { display: block; text-align: center; border-bottom: 0; padding: 24px 0; }
+
+            /* Footer (Total Row) */
+            .rt tfoot { display: block; width: 100%; margin-top: 4px; }
             .rt tfoot tr { 
                 display: flex; 
                 flex-direction: row;
                 justify-content: space-between;
                 align-items: center;
-                border: 1px solid var(--line); 
-                border-radius: 10px; 
-                background: #fff; 
-                padding: 16px 14px; 
-                margin-top: 10px;
+                border: 2px solid var(--line); 
+                border-radius: 12px; 
+                background: #f8fafc; 
+                padding: 16px 18px; 
                 width: 100%;
             }
-            .rt tfoot td { 
-                border: 0; 
-                padding: 0; 
-                display: block;
-            }
+            .rt tfoot td { border: 0; padding: 0; display: block; }
             .rt tfoot td[colspan] { 
-                display: block;
-                text-align: left;
-                font-weight: 700;
-                font-size: 0.85rem;
-                color: var(--slate);
+                display: block; 
+                text-align: left; 
+                font-weight: 700; 
+                font-size: 0.85rem; 
+                color: var(--slate); 
             }
             .rt tfoot td.num { 
                 text-align: right; 
-                font-size: 1.3rem; 
+                font-size: 1.4rem; 
                 font-weight: 800; 
-                color: var(--red);
+                color: var(--red); 
             }
-            .rt tfoot td.num::before {
-                content: none; /* Removes the previous custom label */
-            }
+            .rt tfoot td.num::before { content: none; }
         }
 
+        /* ---------- PRINT VIEW ---------- */
         @media print {
-            .sidebar, .mbar, .scrim, .noprint { display: none !important; }
+            .sidebar, .mbar, .scrim, .noprint, .tabs { display: none !important; }
             body { padding: 0 !important; background: #fff; } main { margin: 0; padding: 0; max-width: none; }
             .card { box-shadow: none; border: 1px solid #cbd5e1; } .printonly { display: block; }
             th { background: #0f172a !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -147,8 +187,15 @@ $canRecord = !$isAdmin;
 
     <?php if ($canViewList): ?>
         <div class="head noprint" style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-            <h2>Today's Expenses & Net Impact (<?= date('d M Y') ?>)</h2>
+            <h2 id="tableTitle">Expenses & Net Impact</h2>
             <button class="btn dark" onclick="window.print()">Export to PDF</button>
+        </div>
+
+        <div class="tabs noprint">
+            <button class="tab active" onclick="changePeriod('today')">Today</button>
+            <button class="tab" onclick="changePeriod('week')">This Week</button>
+            <button class="tab" onclick="changePeriod('month')">This Month</button>
+            <button class="tab" onclick="changePeriod('all')">All Time</button>
         </div>
         
         <p class="printonly" style="color:#64748b; font-size:0.85rem; margin-bottom:10px;">Expenses Report Generated: <?= date('d M Y, h:i A') ?> by <?= e($user['name'] ?? $user['username'] ?? 'Staff') ?></p>
@@ -170,7 +217,7 @@ $canRecord = !$isAdmin;
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="5" style="text-align:right; font-weight:bold;">Total Expenses Today:</td>
+                            <td colspan="5" style="text-align:right; font-weight:bold;" id="tLabel">Total Expenses Today:</td>
                             <td class="num" style="font-weight:bold; font-size:1.1rem; color:var(--red);" id="tTotal">0</td>
                         </tr>
                     </tfoot>
@@ -188,29 +235,54 @@ const fmt = n => Number(n).toLocaleString();
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const apiUrl = './api/expenses.php';
 
-// Global scope definition for loadToday so it's always accessible
-const localTime = (dateStr) => {
+let currentPeriod = 'today';
+
+const localTime = (dateStr, period) => {
     const d = new Date(dateStr.replace(' ', 'T'));
-    return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
+    if (period === 'today') {
+        return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' + 
+           d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true });
 };
 
-const loadToday = async () => {
+const loadExpenses = async () => {
     if (!CAN_VIEW_LIST) return;
+    
+    if (currentPeriod === 'today') {
+        $('tableTitle').textContent = "Today's Expenses & Net Impact (<?= date('d M Y') ?>)";
+        $('tLabel').textContent = "Total Expenses Today:";
+    } else if (currentPeriod === 'week') {
+        $('tableTitle').textContent = "This Week's Expenses & Net Impact";
+        $('tLabel').textContent = "Total Expenses This Week:";
+    } else if (currentPeriod === 'month') {
+        $('tableTitle').textContent = "This Month's Expenses & Net Impact";
+        $('tLabel').textContent = "Total Expenses This Month:";
+    } else {
+        $('tableTitle').textContent = "All-Time Expenses & Net Impact";
+        $('tLabel').textContent = "All-Time Total Expenses:";
+    }
+
+    $('tbody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#64748b;">Loading...</td></tr>';
+
     try {
-        const res = await fetch(apiUrl + '?action=list');
+        const res = await fetch(apiUrl + '?action=list&period=' + currentPeriod);
         const r = await res.json();
-        if (r.error) return;
+        if (r.error) {
+            $('tbody').innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--red);">${r.error}</td></tr>`;
+            return;
+        }
         
         $('tTotal').textContent = CUR + ' ' + fmt(r.total);
         
         if (!r.rows.length) {
-            $('tbody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#64748b;">No expenses recorded today yet.</td></tr>';
+            $('tbody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:#64748b;">No expenses recorded for this period.</td></tr>';
             return;
         }
         
         $('tbody').innerHTML = r.rows.map(x => `
             <tr>
-                <td data-label="Time">${localTime(x.created_at)}</td>
+                <td data-label="Time">${localTime(x.created_at, currentPeriod)}</td>
                 <td data-label="Department / Title"><span style="font-size:0.75rem; font-weight:700; color:var(--blue); text-transform:uppercase;">${esc(x.department)}</span><br><b>${esc(x.title)}</b></td>
                 <td data-label="Category">${esc(x.category)}</td>
                 <td data-label="Description">${esc(x.description || '—')}</td>
@@ -220,8 +292,16 @@ const loadToday = async () => {
         `).join('');
     } catch(e) {
         console.error(e);
+        $('tbody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--red);">Network error loading expenses.</td></tr>';
     }
 };
+
+function changePeriod(period) {
+    currentPeriod = period;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    loadExpenses();
+}
 
 if (document.getElementById('eSave')) {
     const hint = (t, k = '') => { $('eHint').textContent = t; $('eHint').className = 'hint ' + k; };
@@ -252,7 +332,7 @@ if (document.getElementById('eSave')) {
                 hint('', ''); 
                 showToast('Expense recorded successfully!');
                 $('eTitle').value = ''; $('eAmt').value = ''; $('eDesc').value = '';
-                if (CAN_VIEW_LIST) loadToday();
+                if (CAN_VIEW_LIST) loadExpenses();
             }
         } catch (e) { 
             hint(e.message || 'Network error.', 'bad'); 
@@ -263,7 +343,7 @@ if (document.getElementById('eSave')) {
 }
 
 if (CAN_VIEW_LIST) {
-    loadToday();
+    loadExpenses();
 }
 </script>
 </body>

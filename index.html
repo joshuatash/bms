@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Big Wallet Lounge | Bar, Lodge & Hire Services</title>
+    <title>Big Wallet Lounge Management Information System | Bar, Lodge & Hire Services</title>
     
     <!-- FAVICON USING logo.png DIRECTLY -->
     <link rel="icon" type="image/png" href="logo.png">
@@ -13,7 +13,7 @@
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Big Wallet">
+    <meta name="apple-mobile-web-app-title" content="Big Wallet LMS">
     <link rel="apple-touch-icon" href="logo.png">
 
     <style>
@@ -22,18 +22,11 @@
         }
         * { box-sizing: border-box; }
         body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--navy); line-height: 1.6; }
-        
-        /* Navigation */
-        nav { background: var(--navy); padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .nav-brand { display: flex; align-items: center; gap: 12px; color: #fff; text-decoration: none; font-weight: 800; font-size: 1.2rem; }
-        .nav-brand img { height: 40px; width: 40px; border-radius: 50%; background: #fff; object-fit: cover; }
-        .btn-nav { background: var(--amber); color: var(--navy); padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 700; transition: 0.2s; }
-        .btn-nav:hover { background: #d97706; color: #fff; }
 
         /* Hero Section */
-        .hero { background: linear-gradient(135deg, var(--navy) 0%, var(--slate) 100%); color: #fff; padding: 80px 5% 60px; text-align: center; }
+        .hero { background: linear-gradient(135deg, var(--navy) 0%, var(--slate) 100%); color: #fff; padding: 100px 5% 80px; text-align: center; }
         .hero img { height: 120px; width: 120px; border-radius: 50%; border: 4px solid var(--amber); background: #fff; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        .hero h1 { font-size: 2.8rem; margin: 0 0 10px; letter-spacing: -1px; }
+        .hero h1 { font-size: 2.5rem; margin: 0 0 10px; letter-spacing: -1px; line-height: 1.2; }
         .hero p { font-size: 1.2rem; color: #cbd5e1; max-width: 600px; margin: 0 auto 30px; }
         
         .hero-buttons { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
@@ -74,9 +67,13 @@
         .install-modal .icon { font-size: 40px; margin-bottom: 15px; }
         .install-modal .btn { background: var(--amber); color: var(--navy); border: 0; border-radius: 8px; padding: 12px 20px; font-weight: 700; width: 100%; cursor: pointer; font-size: 1rem; }
         
-        @media (max-width: 640px) {
+        @media (max-width: 768px) {
+            .hero { padding: 60px 5% 50px; }
             .hero h1 { font-size: 2rem; }
-            .nav-brand span { display: none; }
+        }
+
+        @media (max-width: 640px) {
+            .hero h1 { font-size: 1.8rem; }
             .hero-buttons { flex-direction: column; }
             .btn-hero, #installBtn { width: 100%; }
         }
@@ -84,22 +81,13 @@
 </head>
 <body>
 
-    <nav>
-        <a href="index.html" class="nav-brand">
-            <img src="logo.png" alt="Big Wallet Lounge Logo">
-            <span>Big Wallet Lounge</span>
-        </a>
-        <a href="login.php" class="btn-nav">Staff Login</a>
-    </nav>
-
     <section class="hero">
         <img src="logo.png" alt="Big Wallet Lounge Logo">
-        <h1>Big Wallet Lounge</h1>
+        <h1>Big Wallet Lounge Management Information System</h1>
         <p>Your premier destination for relaxation, entertainment, and professional event services.</p>
         
         <div class="hero-buttons">
             <a href="login.php" class="btn-hero">Employee Portal Login</a>
-            <!-- The button is always visible here -->
             <button id="installBtn">📲 Install App</button>
         </div>
     </section>
@@ -123,7 +111,7 @@
     </section>
 
     <footer>
-        <p>&copy; 2026 Big Wallet Lounge. All rights reserved. | <a href="privacy.php">Privacy Policy</a></p>
+        <p>&copy; 2026 Big Wallet Lounge Management Information System. All rights reserved. | <a href="privacy.php">Privacy Policy</a></p>
     </footer>
 
     <!-- CUSTOM INSTALL DIALOG -->
@@ -146,10 +134,9 @@
 
     <script>
         // --- PWA MANIFEST BLOB FIX FOR INFINITYFREE ---
-        // This builds the manifest in JavaScript so InfinityFree's security system doesn't block it.
         const manifest = {
-            "name": "Big Wallet Lounge",
-            "short_name": "Big Wallet",
+            "name": "Big Wallet Lounge Management Information System",
+            "short_name": "Big Wallet LMS",
             "description": "Bar, Lodge & Hire Services Management App",
             "start_url": "index.html",
             "display": "standalone",
@@ -197,16 +184,14 @@
             deferredPrompt = e;
         });
 
-        // Button click - THE BUTTON IS ALWAYS VISIBLE NOW
+        // Button click
         if(installBtn) {
             installBtn.addEventListener('click', async () => {
-                // If it's an iPhone, or if the native prompt hasn't fired yet, show the manual instructions
                 if (isIOS || !deferredPrompt) {
                     installModal.classList.add('open');
                     return;
                 }
 
-                // Otherwise, trigger the native install prompt (Android/Desktop)
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 console.log(`User response to install prompt: ${outcome}`);
