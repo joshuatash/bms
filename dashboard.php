@@ -125,6 +125,13 @@ try {
         .tile.net .more { color: #4ade80; }
         
         .tile.soon::after { content: 'Soon'; position: absolute; top: 10px; right: 12px; font-size: .62rem; background: var(--surface-3); color: var(--text-dim); padding: 2px 8px; border-radius: 999px; }
+        
+        /* Public footer for Safe Browsing compliance */
+        .public-footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center; font-size: 0.8rem; color: var(--text-mute); padding-bottom: 20px; }
+        .public-footer p { margin: 4px 0; }
+        .public-footer a { color: var(--text-dim); text-decoration: none; transition: 0.2s; }
+        .public-footer a:hover { color: var(--amber); }
+        
         @media(max-width: 640px) {
             main { margin: 14px auto; padding: 0 12px; } 
             h2 { font-size: 1.2rem; }
@@ -216,6 +223,17 @@ try {
             <small>Active Accounts</small><b><?= $users ?></b>
         </div>
     </section>
+    
+    <footer class="public-footer">
+        <p><strong>Big Wallet Lounge Staff Portal</strong></p>
+        <p>Private business management system. Authorized personnel only.</p>
+        <p>
+            <a href="index.html">Home</a> | 
+            <a href="privacy.php">Privacy Policy</a> | 
+            <a href="terms.php">Terms of Service</a> | 
+            <a href="manual.php">Help Center</a>
+        </p>
+    </footer>
 </main>
 <script>
     document.querySelectorAll('.local-time').forEach(el => {

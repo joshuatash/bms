@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Login - Business Manager</title>
+<title>Login - Big Wallet Lounge</title>
 <style>
 :root{
     --bg:#0b1220;
@@ -61,8 +61,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     --amber:#f59e0b;
 }
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',system-ui,sans-serif;background:#0b1220}
-.card{background:var(--surface);border:1px solid var(--border);width:min(380px,92vw);padding:36px 32px;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+body{
+    margin:0;
+    min-height:100vh;
+    display:grid;
+    place-items:center;
+    font-family:'Segoe UI',system-ui,sans-serif;
+    background:var(--bg);
+    padding: 20px;
+}
+.login-wrapper{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+.card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    width:min(380px,100%);
+    padding:36px 32px;
+    border-radius:16px;
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+}
 h1{margin:0 0 4px;font-size:1.5rem;color:var(--text)}
 p{margin:0 0 22px;color:var(--text-dim);font-size:.9rem}
 label{display:block;font-size:.8rem;font-weight:600;color:var(--text-dim);margin:14px 0 6px}
@@ -84,30 +105,51 @@ button:hover{background:#d97706;color:#fff}
 .pw .eye.on .i-show{display:none}
 .brand{text-align:center;margin-bottom:18px}
 .brand-logo{width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 10px;display:block;border:2px solid var(--border);background:var(--surface-2)}
+.public-footer{
+    margin-top:24px;
+    text-align:center;
+    font-size:0.78rem;
+    color:var(--text-mute);
+    line-height:1.6;
+}
+.public-footer a{color:var(--text-dim);text-decoration:none;transition:.15s}
+.public-footer a:hover{color:var(--amber)}
 </style></head><body>
-<form class="card" method="post">
-  <div class="brand">
-    <img src="logo.png" alt="Big Wallet Lounge" class="brand-logo">
-    <h1>Big Wallet Lounge</h1>
-  </div>
-  <p>Sign in to continue</p>
-  <?php if ($error): ?><div class="err"><?= e($error) ?></div><?php endif; ?>
-  
-  <label>Username</label>
-  <input name="username" autocomplete="username" required autofocus>
-  
-  <label>Password</label>
-  <div class="pw">
-      <input name="password" type="password" autocomplete="current-password" required>
-      <button type="button" class="eye" aria-label="Show password" aria-pressed="false"><svg class="i-show" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-hide" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.9 10.9 0 0 1 12 19c-7 0-11-7-11-7a19.8 19.8 0 0 1 5.06-5.94M9.9 4.24A10.9 10.9 0 0 1 12 4c7 0 11 7 11 7a19.7 19.7 0 0 1-3.17 4.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg></button>
-  </div>
-  
-  <div style="text-align: right; margin-top: 8px;">
-      <a href="forgot_password.php" style="font-size: 0.8rem; color: var(--text-dim); text-decoration: none;">Forgot Password?</a>
-  </div>
-  <button>Sign In</button>
-  <div class="links"><a href="register.php">Create an account</a><a href="index.html">&larr; Home</a></div>
-</form>
+
+<div class="login-wrapper">
+    <!-- Added autocomplete="off" to the form -->
+    <form class="card" method="post" autocomplete="off">
+      <div class="brand">
+        <img src="logo.png" alt="Big Wallet Lounge" class="brand-logo">
+        <h1>Big Wallet Lounge</h1>
+      </div>
+      <p>Sign in to continue</p>
+      <?php if ($error): ?><div class="err"><?= e($error) ?></div><?php endif; ?>
+      
+      <!-- Added autocomplete="off" to the username -->
+      <label>Username</label>
+      <input name="username" autocomplete="off" required autofocus>
+      
+      <!-- Changed autocomplete to "new-password" to block auto-fill -->
+      <label>Password</label>
+      <div class="pw">
+          <input name="password" type="password" autocomplete="new-password" required>
+          <button type="button" class="eye" aria-label="Show password" aria-pressed="false"><svg class="i-show" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg><svg class="i-hide" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.9 10.9 0 0 1 12 19c-7 0-11-7-11-7a19.8 19.8 0 0 1 5.06-5.94M9.9 4.24A10.9 10.9 0 0 1 12 4c7 0 11 7 11 7a19.7 19.7 0 0 1-3.17 4.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg></button>
+      </div>
+      
+      <div style="text-align: right; margin-top: 8px;">
+          <a href="forgot_password.php" style="font-size: 0.8rem; color: var(--text-dim); text-decoration: none;">Forgot Password?</a>
+      </div>
+      <button>Sign In</button>
+      <div class="links"><a href="register.php">Create an account</a><a href="index.html">&larr; Home</a></div>
+    </form>
+
+    <div class="public-footer">
+        <p>Private staff portal for <strong>Big Wallet Lounge</strong>.</p>
+        <p><a href="privacy.php">Privacy Policy</a> | <a href="terms.php">Terms of Service</a> | <a href="manual.php">Help</a></p>
+    </div>
+</div>
+
 <script>
 document.querySelectorAll('.pw .eye').forEach(b => b.addEventListener('click', () => {
   const inp = b.parentElement.querySelector('input'), show = inp.type === 'password';
