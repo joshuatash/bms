@@ -29,7 +29,7 @@
         <p>We implement standard security measures to protect your data. Passwords are encrypted using industry-standard hashing algorithms. Access to the portal is restricted to administrators.</p>
 
         <h2>4. Contact Us</h2>
-        <p>If you have questions about this policy, please contact us at <a href="mailto:okutajoshuatash256@gmail.com">okutajoshuatash256@gmail.com</a> or call <a href="tel:0783486026">0783 486 026</a>.</p>
+        <p>If you have questions about this policy, please contact us at <a href="mailto:info@bigwalletlounge.com">info@bigwalletlounge.com</a>, WhatsApp <a href="https://wa.me/211925830541" target="_blank">+211 925 830 541</a>, or call <a href="tel:0787072542">0787 072 542</a>.</p>
     </div>
 </body>
 </html>
