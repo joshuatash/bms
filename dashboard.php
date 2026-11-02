@@ -12,6 +12,8 @@ $adminName = $stmtName->fetchColumn() ?: current_user()['name'];
 $money = fn($n) => number_format((float)$n);
 // Stock Stats
 $p = $pdo->query("SELECT COUNT(*) total, COALESCE(SUM(bottles_available > 0 AND bottles_available <= low_stock_threshold),0) low, COALESCE(SUM(bottles_available = 0),0) out_of_stock FROM products WHERE is_active = 1")->fetch();
+// Overall Stock Balance — total retail value of available stock (uses actual column: price_per_bottle)
+$stockBalance = (float)$pdo->query("SELECT COALESCE(SUM(bottles_available * price_per_bottle), 0) FROM products WHERE is_active = 1 AND bottles_available > 0")->fetchColumn();
 // Sales Stats
 $salesToday = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE DATE(sale_date) = CURDATE()")->fetchColumn();
 $salesMonth = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE sale_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
@@ -82,6 +84,23 @@ try {
         .tile.money { border-left-color: #16a34a; }
         .tile.profit { border-left-color: #2563eb; }
         .tile.net { border-left-color: #16a34a; }
+        
+        /* Stock Balance tile - outstanding glowing value */
+        .tile.stock-balance { 
+            border-left-color: #22c55e; 
+            background: linear-gradient(135deg, var(--surface) 0%, rgba(34,197,94,.08) 100%);
+            grid-column: span 2;
+        }
+        .tile.stock-balance b {
+            color: #4ade80;
+            font-size: 2.2rem;
+            text-shadow: 0 0 20px rgba(74,222,128,.5);
+            letter-spacing: -.5px;
+        }
+        @media(max-width: 640px) {
+            .tile.stock-balance { grid-column: span 2; }
+            .tile.stock-balance b { font-size: 1.6rem; }
+        }
         
         .tile.link { display: block; text-decoration: none; color: inherit; cursor: pointer; transition: .15s; }
         .tile.link:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0,0,0,.5); }
@@ -158,6 +177,11 @@ try {
     </section>
     <div class="group">Stock &amp; Accounts</div>
     <section class="tiles">
+        <a class="tile stock-balance link" href="products.php">
+            <small>Overall Stock Balance (<?= CURRENCY ?>)</small>
+            <b><?= $money($stockBalance) ?></b>
+            <span class="more">View inventory &rarr;</span>
+        </a>
         <a class="tile link" href="products.php">
             <small>Products</small><b><?= (int)$p['total'] ?></b><span class="more">View details &rarr;</span>
         </a>
