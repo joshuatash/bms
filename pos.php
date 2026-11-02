@@ -6,93 +6,166 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Point of Sale</title>
     <style>
-        :root{--navy:#0f172a;--slate:#334155;--muted:#64748b;--line:#e2e8f0;--amber:#f59e0b;--green:#16a34a;--red:#dc2626;--orange:#ea580c}
+        :root{
+            --navy:#0f172a;--slate:#334155;--muted:#64748b;--line:#e2e8f0;--amber:#f59e0b;--green:#16a34a;--red:#dc2626;--orange:#ea580c;
+            /* Dark theme surfaces */
+            --bg:#0b1220;
+            --surface:#111c2e;
+            --surface-2:#16243a;
+            --surface-3:#1e2d47;
+            --text:#e2e8f0;
+            --text-dim:#94a3b8;
+            --text-mute:#64748b;
+            --border:#243349;
+        }
         *{box-sizing:border-box}
-        body{margin:0;font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); color:var(--navy); min-height:100vh}
+        body{margin:0;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
         
         .wrap{max-width:1400px;margin:20px auto;padding:0 18px;display:grid;grid-template-columns:1fr 400px;gap:20px;align-items:start}
         
         /* Main Left Panel */
-        .card{background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05); border:1px solid rgba(255,255,255,0.6)}
-        .card h2{margin:0 0 16px;font-size:1.1rem; display:flex; justify-content:space-between; align-items:center}
+        .card{background:var(--surface);border-radius:16px;padding:20px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.3); border:1px solid var(--border)}
+        .card h2{margin:0 0 16px;font-size:1.1rem; display:flex; justify-content:space-between; align-items:center; color:var(--text)}
         
-        .toolbar{display:flex;gap:12px;align-items:center;margin-bottom:16px}
-        .toolbar input{flex:1;padding:14px 16px;border:1px solid #cbd5e1;border-radius:10px;font-size:1rem; background:#f8fafc}
-        input:focus{outline:2px solid var(--amber);border-color:var(--amber); background:#fff}
-        .count{color:var(--slate);font-size:.85rem;font-weight:600;white-space:nowrap}
+        .toolbar{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+        .toolbar input{flex:1;padding:14px 16px;border:1px solid var(--border);border-radius:10px;font-size:1rem; background:var(--surface-2); color:var(--text)}
+        .toolbar input::placeholder{color:var(--text-mute)}
+        input:focus{outline:2px solid var(--amber);border-color:var(--amber); background:var(--surface-3)}
+        .count{color:var(--text-dim);font-size:.85rem;font-weight:600;white-space:nowrap}
+        
+        /* Quick Sort Filter Buttons */
+        .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .filter-btn{
+            display:inline-flex;align-items:center;gap:8px;
+            border:1px solid var(--border);
+            background:var(--surface-2);
+            color:var(--text-dim);
+            border-radius:10px;
+            padding:9px 14px;
+            font-size:.85rem;
+            font-weight:700;
+            cursor:pointer;
+            font-family:inherit;
+            transition:.15s;
+            white-space:nowrap;
+        }
+        .filter-btn:hover{background:var(--surface-3);color:var(--text)}
+        .filter-btn .fc{
+            display:inline-block;
+            min-width:22px;
+            padding:2px 7px;
+            border-radius:999px;
+            font-size:.72rem;
+            font-weight:800;
+            text-align:center;
+            background:var(--surface-3);
+            color:var(--text);
+        }
+        .filter-btn.on{background:var(--amber);color:#0b1220;border-color:var(--amber);box-shadow:0 4px 6px -1px rgba(245,158,11,.3)}
+        .filter-btn.on .fc{background:rgba(0,0,0,.18);color:#0b1220}
+        .filter-btn.avail .fc{background:rgba(22,163,74,.25);color:#4ade80}
+        .filter-btn.low .fc{background:rgba(234,88,12,.25);color:#fb923c}
+        .filter-btn.out .fc{background:rgba(220,38,38,.25);color:#f87171}
+        .filter-btn.avail.on .fc,.filter-btn.low.on .fc,.filter-btn.out.on .fc{background:rgba(0,0,0,.18);color:#0b1220}
         
         /* Table */
-        .tablewrap{overflow:auto;max-height:calc(100vh - 200px); border-radius:10px; border:1px solid var(--line)}
-        table{width:100%;border-collapse:collapse;font-size:.93rem}
-        th{position:sticky;top:0;text-align:left;background:#f8fafc;color:var(--slate);padding:12px 16px;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--line); z-index:10}
-        td{padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
-        tr.sel td{background:#fffbeb}
-        tr.out td{opacity:.5}
-        tr:hover:not(.sel) td { background: #f8fafc; }
+        .tablewrap{overflow:auto;max-height:calc(100vh - 200px); border-radius:10px; border:1px solid var(--border)}
+        table{width:100%;border-collapse:collapse;font-size:.93rem;color:var(--text)}
+        th{position:sticky;top:0;text-align:left;background:var(--surface-2);color:var(--text-dim);padding:12px 16px;font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border); z-index:10}
+        td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+        tr.sel td{background:rgba(245,158,11,.12)}
+        tr.out td{opacity:.4}
+        tr:hover:not(.sel) td { background: var(--surface-2); }
         
         .num{text-align:right}.ctr{text-align:center}
         .badge{padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:700;white-space:nowrap}
-        .badge.Available{background:#dcfce7;color:#166534}.badge.Low{background:#ffedd5;color:#9a3412}.badge.Out{background:#fee2e2;color:#991b1b}
+        .badge.Available{background:rgba(22,163,74,.2);color:#4ade80}
+        .badge.Low{background:rgba(234,88,12,.2);color:#fb923c}
+        .badge.Out{background:rgba(220,38,38,.2);color:#f87171}
         
         td input[type=checkbox]{width:22px;height:22px;accent-color:var(--amber);cursor:pointer; border-radius:4px}
         td input[type=checkbox]:disabled{cursor:not-allowed}
-        td input.qty{width:80px;padding:8px;border:1px solid #cbd5e1;border-radius:8px;font-size:.95rem;text-align:center; font-weight:600}
-        td input.qty:disabled{background:#f1f5f9;color:#94a3b8}
+        td input.qty{width:80px;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:.95rem;text-align:center; font-weight:600; background:var(--surface-2); color:var(--text)}
+        td input.qty:disabled{background:var(--surface);color:var(--text-mute)}
 
         /* Right Side Cart */
-        .cart{position:sticky;top:20px; background:#fff; border-radius:16px; padding:20px; box-shadow:0 10px 25px -5px rgba(0,0,0,0.1); border:1px solid rgba(255,255,255,0.6); display:flex; flex-direction:column; max-height:calc(100vh - 40px)}
-        .cart h2 { margin:0 0 10px; font-size:1.2rem; }
-        .meta{font-size:.85rem;color:var(--slate);padding-bottom:14px;border-bottom:1px dashed var(--line); margin-bottom:10px}
+        .cart{position:sticky;top:20px; background:var(--surface); border-radius:16px; padding:20px; box-shadow:0 10px 25px -5px rgba(0,0,0,0.4); border:1px solid var(--border); display:flex; flex-direction:column; max-height:calc(100vh - 40px)}
+        .cart h2 { margin:0 0 10px; font-size:1.2rem; color:var(--text) }
+        .meta{font-size:.85rem;color:var(--text-dim);padding-bottom:14px;border-bottom:1px dashed var(--border); margin-bottom:10px}
+        .meta b{color:var(--text)}
         
         .items{flex:1; overflow:auto; padding:8px 0; min-height:150px}
-        .items .empty{color:var(--slate);text-align:center;padding:40px 0;font-size:.9rem; display:flex; flex-direction:column; align-items:center; gap:10px}
+        .items .empty{color:var(--text-mute);text-align:center;padding:40px 0;font-size:.9rem; display:flex; flex-direction:column; align-items:center; gap:10px}
         
-        .line{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9;font-size:.95rem}
-        .line .nm{font-weight:700; color:var(--navy)}.line small{display:block;color:var(--slate); margin-top:2px}
-        .line .rm{border:0;background:#fee2e2;color:#991b1b;border-radius:6px;cursor:pointer;font-weight:700;width:28px;height:28px;margin-left:12px; display:flex; align-items:center; justify-content:center; transition:0.2s}
-        .line .rm:hover{background:#fca5a5}
-        .line .amt{white-space:nowrap;font-weight:800; font-size:1rem; color:var(--navy)}
+        .line{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);font-size:.95rem}
+        .line .nm{font-weight:700; color:var(--text)}.line small{display:block;color:var(--text-dim); margin-top:2px}
+        .line .rm{border:0;background:rgba(220,38,38,.15);color:#f87171;border-radius:6px;cursor:pointer;font-weight:700;width:28px;height:28px;margin-left:12px; display:flex; align-items:center; justify-content:center; transition:0.2s}
+        .line .rm:hover{background:rgba(220,38,38,.3)}
+        .line .amt{white-space:nowrap;font-weight:800; font-size:1rem; color:var(--text)}
         
-        .total{display:flex;justify-content:space-between;align-items:center;padding:18px 0 14px;border-top:2px solid var(--navy);margin-top:10px;font-weight:800; font-size:1.1rem}
-        .total b{font-size:1.8rem; color:var(--green)}
+        .total{display:flex;justify-content:space-between;align-items:center;padding:18px 0 14px;border-top:2px solid var(--amber);margin-top:10px;font-weight:800; font-size:1.1rem; color:var(--text)}
+        .total b{font-size:1.8rem; color:#4ade80}
         
-        .btn{border:0;border-radius:10px;padding:16px 18px;font-weight:800;cursor:pointer;font-size:1rem;width:100%; transition:0.2s}
-        .btn.primary{background:var(--amber);color:var(--navy); box-shadow:0 4px 6px -1px rgba(245,158,11,0.3)}
+        .btn{border:0;border-radius:10px;padding:16px 18px;font-weight:800;cursor:pointer;font-size:1rem;width:100%; transition:0.2s; font-family:inherit}
+        .btn.primary{background:var(--amber);color:#0b1220; box-shadow:0 4px 6px -1px rgba(245,158,11,0.3)}
         .btn.primary:hover:not(:disabled){background:#d97706;color:#fff; transform:translateY(-1px)}
-        .btn:disabled{opacity:.45;cursor:not-allowed; box-shadow:none}
-        .btn.ghost{background:#f1f5f9;color:var(--slate);margin-top:10px;padding:12px;font-size:.9rem}
-        .btn.ghost:hover{background:#e2e8f0}
+        .btn:disabled{opacity:.35;cursor:not-allowed; box-shadow:none}
+        .btn.ghost{background:var(--surface-2);color:var(--text-dim);margin-top:10px;padding:12px;font-size:.9rem}
+        .btn.ghost:hover{background:var(--surface-3);color:var(--text)}
         
-        .hint{font-size:.85rem;margin-top:12px;min-height:1.2em;color:var(--slate); text-align:center; font-weight:600}
-        .hint.bad{color:var(--red)}
+        .hint{font-size:.85rem;margin-top:12px;min-height:1.2em;color:var(--text-dim); text-align:center; font-weight:600}
+        .hint.bad{color:#f87171}
         
         /* Modals */
-        .modal{position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);display:none;place-items:center;z-index:50}
+        .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;place-items:center;z-index:50}
         .modal.open{display:grid}
-        .modal .box{background:#fff;border-radius:20px;padding:30px;width:min(400px,94vw);text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25)}
-        .modal h3{margin:0 0 8px;color:var(--green); font-size:1.4rem}
-        .modal .big{font-size:2.2rem;font-weight:900;margin:16px 0; color:var(--navy)}
+        .modal .box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px;width:min(400px,94vw);text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.6); color:var(--text)}
+        .modal h3{margin:0 0 8px;color:#4ade80; font-size:1.4rem}
+        .modal .big{font-size:2.2rem;font-weight:900;margin:16px 0; color:var(--text)}
         .modal .row{display:flex;gap:12px;margin-top:24px}
         .modal .btn{padding:14px}
         
         /* Mobile Cart Bar */
         .cartbar{display:none}
         
+        /* Back to top */
+        .back-top{
+            position:fixed;right:20px;bottom:20px;z-index:60;
+            width:52px;height:52px;border-radius:50%;border:0;
+            background:var(--green);color:#fff;font-size:1.4rem;font-weight:900;
+            cursor:pointer;display:grid;place-items:center;
+            box-shadow:0 8px 20px rgba(22,163,74,.45);
+            opacity:0;visibility:hidden;transform:translateY(12px);
+            transition:opacity .25s ease,transform .25s ease,background .2s ease;
+        }
+        .back-top.show{opacity:1;visibility:visible;transform:translateY(0)}
+        .back-top:hover{background:#15803d}
+        .back-top:active{transform:translateY(1px) scale(.96)}
+        .back-top .tip{
+            position:absolute;right:calc(100% + 10px);top:50%;transform:translateY(-50%);
+            background:#052e16;color:#bbf7d0;font-size:.78rem;font-weight:700;
+            padding:6px 10px;border-radius:8px;white-space:nowrap;
+            opacity:0;pointer-events:none;transition:opacity .2s ease;border:1px solid #166534;
+        }
+        .back-top:hover .tip,.back-top:focus-visible .tip{opacity:1}
+        .back-top svg{width:22px;height:22px}
+        
         /* --- RESPONSIVE FIXES --- */
         @media(max-width: 1050px){
             .wrap{grid-template-columns:1fr; padding-bottom: 80px;}
             .cart{position:static; max-height:none; margin-bottom: 20px;}
             .tablewrap{max-height:none}
-            .cartbar.show{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:#0f172a;color:#fff;padding:16px 20px;justify-content:space-between;align-items:center;font-weight:800;box-shadow:0 -10px 25px -5px rgba(0,0,0,0.3)}
-            .cartbar button{background:var(--amber);color:var(--navy);border:0;border-radius:8px;padding:12px 20px;font-weight:800;font-size:.95rem; cursor:pointer}
+            .cartbar.show{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--amber);color:#0b1220;padding:16px 20px;justify-content:space-between;align-items:center;font-weight:800;box-shadow:0 -10px 25px -5px rgba(0,0,0,0.5)}
+            .cartbar button{background:#0b1220;color:var(--amber);border:0;border-radius:8px;padding:12px 20px;font-weight:800;font-size:.95rem; cursor:pointer}
+            .back-top{bottom:82px;right:14px}
         }
         
         @media(max-width: 640px){
             .rt thead{display:none}
             .rt,.rt tbody,.rt tr,.rt td{display:block;width:100%}
-            .rt tr{border:1px solid #e2e8f0;border-radius:12px;margin-bottom:12px;padding:12px;background:#fff; position:relative}
+            .rt tr{border:1px solid var(--border);border-radius:12px;margin-bottom:12px;padding:12px;background:var(--surface-2); position:relative}
             .rt td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:0;padding:8px 0;text-align:right}
-            .rt td::before{content:attr(data-label);font-weight:700;font-size:.72rem;text-transform:uppercase;color:var(--slate);text-align:left;flex-shrink:0}
+            .rt td::before{content:attr(data-label);font-weight:700;font-size:.72rem;text-transform:uppercase;color:var(--text-dim);text-align:left;flex-shrink:0}
             .rt td[colspan]::before{content:none}
             .rt td[colspan]{display:block;text-align:center}
             .rt tr:hover td{background:transparent}
@@ -102,6 +175,9 @@
             td input[type=checkbox]{width:28px;height:28px}
             .toolbar { flex-wrap: wrap; }
             .toolbar input { font-size: 0.95rem; padding: 12px; }
+            .filters { gap:6px; }
+            .filter-btn { flex:1 1 calc(33.33% - 6px); justify-content:center; padding:10px 6px; font-size:.78rem; }
+            .back-top .tip{display:none}
         }
     </style>
 </head>
@@ -115,6 +191,21 @@
         <div class="toolbar">
             <input id="q" type="search" placeholder="Search drinks by name or category..." autocomplete="off" autofocus>
             <span class="count" id="count"></span>
+        </div>
+        <!-- Quick Sort Filter Buttons -->
+        <div class="filters" role="group" aria-label="Quick filters">
+            <button type="button" class="filter-btn all on" data-filter="all">
+                All <span class="fc" id="fcAll">0</span>
+            </button>
+            <button type="button" class="filter-btn avail" data-filter="available">
+                Available <span class="fc" id="fcAvail">0</span>
+            </button>
+            <button type="button" class="filter-btn low" data-filter="low">
+                Low Stock <span class="fc" id="fcLow">0</span>
+            </button>
+            <button type="button" class="filter-btn out" data-filter="out">
+                Out of Stock <span class="fc" id="fcOut">0</span>
+            </button>
         </div>
         <div class="tablewrap">
             <table class="rt">
@@ -153,6 +244,15 @@
     <button id="cbBtn">View Cart</button>
 </div>
 
+<!-- BACK TO TOP -->
+<button class="back-top" id="backTop" type="button" aria-label="Move Up" title="Move Up">
+    <span class="tip">Move Up</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 19V5"/>
+        <path d="M5 12l7-7 7 7"/>
+    </svg>
+</button>
+
 <!-- SUCCESS MODAL -->
 <div class="modal" id="done"><div class="box">
     <h3>Payment Complete</h3>
@@ -175,6 +275,14 @@ const debounce = (fn, ms=250) => { let t; return (...a) => { clearTimeout(t); t 
 const cart = new Map(); 
 let rows = [];
 let lastCompletedSale = null;
+let currentFilter = 'all'; // all | available | low | out
+
+/* Back-to-top */
+const backTop = $('backTop');
+const toggleBackTop = () => backTop.classList.toggle('show', window.scrollY > 200);
+window.addEventListener('scroll', toggleBackTop, { passive: true });
+backTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+toggleBackTop();
 
 async function load() {
     const r = await (await fetch('api/products.php?action=list&q=' + encodeURIComponent($('q').value.trim()))).json();
@@ -190,18 +298,41 @@ async function load() {
             else c.qty = Math.min(c.qty, c.max);
         }
     }
+    updateFilterCounts();
     renderTable(); renderCart();
 }
 
+function bucketOf(p) {
+    if (p.status === 'Out of Stock') return 'out';
+    if (p.status === 'Low Stock') return 'low';
+    return 'available';
+}
+
+function updateFilterCounts() {
+    let a = 0, l = 0, o = 0;
+    for (const p of rows) {
+        const b = bucketOf(p);
+        if (b === 'available') a++;
+        else if (b === 'low') l++;
+        else o++;
+    }
+    $('fcAll').textContent = rows.length;
+    $('fcAvail').textContent = a;
+    $('fcLow').textContent = l;
+    $('fcOut').textContent = o;
+}
+
 function renderTable() {
-    $('count').textContent = rows.length + ' item' + (rows.length === 1 ? '' : 's');
-    $('tbody').innerHTML = rows.length ? rows.map(p => {
+    const filtered = currentFilter === 'all' ? rows : rows.filter(p => bucketOf(p) === currentFilter);
+    $('count').textContent = filtered.length + ' item' + (filtered.length === 1 ? '' : 's') +
+        (currentFilter !== 'all' && filtered.length !== rows.length ? ' (of ' + rows.length + ')' : '');
+    $('tbody').innerHTML = filtered.length ? filtered.map(p => {
         const id = String(p.product_id), out = p.status === 'Out of Stock', c = cart.get(id);
         return `<tr class="${c?'sel':''} ${out?'out':''}">
             <td data-label="Item">
                 <div style="text-align:left">
                     <b style="font-size:1.05rem">${esc(p.product_name)}</b><br>
-                    <small style="color:#64748b">${esc(p.category)} | ${fmt(p.bottles_available)} left</small>
+                    <small style="color:var(--text-dim)">${esc(p.category)} | ${fmt(p.bottles_available)} left</small>
                 </div>
             </td>
             <td class="num" data-label="Price"><b>${fmt(p.price)}</b></td>
@@ -209,7 +340,7 @@ function renderTable() {
             <td class="ctr" data-label="Select"><input type="checkbox" data-id="${id}" ${c?'checked':''} ${out?'disabled':''}></td>
             <td class="ctr" data-label="Bottles"><input class="qty" type="number" min="1" max="${p.bottles_available}" value="${c?c.qty:1}" data-q="${id}" ${c?'':'disabled'}></td>
         </tr>`;
-    }).join('') : `<tr><td colspan="5" style="text-align:center;color:#64748b;padding:40px">No drinks found.</td></tr>`;
+    }).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text-mute);padding:40px">No drinks match this filter.</td></tr>`;
 }
 
 function renderCart() {
@@ -234,6 +365,15 @@ function renderCart() {
     $('cbText').textContent = cart.size + ' item' + (cart.size === 1 ? '' : 's') + ' | ' + CUR + ' ' + fmt(total);
     $('cartBar').classList.toggle('show', cart.size > 0);
 }
+
+/* Filter button handling */
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        currentFilter = btn.dataset.filter;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('on', b === btn));
+        renderTable();
+    });
+});
 
 $('tbody').addEventListener('change', e => {
     const t = e.target, row = t.closest('tr');

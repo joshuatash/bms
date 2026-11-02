@@ -6,11 +6,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Privacy Policy | Big Wallet Lounge</title>
     <style>
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #0f172a; line-height: 1.6; padding: 40px 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        h1 { color: #0f172a; }
-        h2 { color: #334155; margin-top: 30px; }
-        a { color: #f59e0b; text-decoration: none; font-weight: bold; }
+        :root{
+            --bg:#0b1220;
+            --surface:#111c2e;
+            --surface-2:#16243a;
+            --surface-3:#1e2d47;
+            --text:#e2e8f0;
+            --text-dim:#94a3b8;
+            --text-mute:#64748b;
+            --border:#243349;
+            --amber:#f59e0b;
+        }
+        *{box-sizing:border-box}
+        body { margin:0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; padding: 40px 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); padding: 40px; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+        h1 { color: var(--text); margin-top: 0; }
+        h2 { color: var(--text); margin-top: 30px; font-size: 1.15rem; }
+        p { color: var(--text-dim); margin: 10px 0; }
+        a { color: var(--amber); text-decoration: none; font-weight: bold; transition: color .15s; }
+        a:hover { color: #d97706; }
+        @media(max-width: 640px) {
+            body { padding: 20px 12px; }
+            .container { padding: 24px; }
+            h1 { font-size: 1.4rem; }
+        }
     </style>
 </head>
 <body>

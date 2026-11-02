@@ -47,19 +47,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Forgot Password</title>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#0f172a,#1e293b 60%,#334155)}
-.card{background:linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);width:min(400px,92vw);padding:36px 32px;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.35);text-align:center;}
-h1{margin:0 0 4px;font-size:1.5rem;color:#0f172a}p{margin:0 0 22px;color:#64748b;font-size:.9rem}
-label{display:block;font-size:.8rem;font-weight:600;color:#334155;margin:14px 0 6px;text-align:left;}
-input{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:1rem}
-input:focus{outline:2px solid #f59e0b;border-color:#f59e0b}
-button{width:100%;margin-top:22px;padding:12px;border:0;border-radius:8px;background:#f59e0b;color:#1e293b;font-weight:700;font-size:1rem;cursor:pointer}
+:root{
+    --bg:#0b1220;
+    --surface:#111c2e;
+    --surface-2:#16243a;
+    --surface-3:#1e2d47;
+    --text:#e2e8f0;
+    --text-dim:#94a3b8;
+    --text-mute:#64748b;
+    --border:#243349;
+    --amber:#f59e0b;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',system-ui,sans-serif;background:#0b1220;color:var(--text)}
+.card{background:var(--surface);border:1px solid var(--border);width:min(400px,92vw);padding:36px 32px;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.5);text-align:center;}
+h1{margin:0 0 4px;font-size:1.5rem;color:var(--text)}
+p{margin:0 0 22px;color:var(--text-dim);font-size:.9rem}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--text-dim);margin:14px 0 6px;text-align:left;}
+input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:1rem;background:var(--surface-2);color:var(--text)}
+input::placeholder{color:var(--text-mute)}
+input:focus{outline:2px solid var(--amber);border-color:var(--amber);background:var(--surface-3)}
+button{width:100%;margin-top:22px;padding:12px;border:0;border-radius:8px;background:var(--amber);color:#0b1220;font-weight:700;font-size:1rem;cursor:pointer;transition:.15s;box-shadow:0 4px 6px -1px rgba(245,158,11,.3)}
 button:hover{background:#d97706;color:#fff}
-.err{background:#fee2e2;color:#991b1b;padding:10px;border-radius:8px;font-size:.85rem;margin-bottom:6px}
-.ok{background:#dcfce7;color:#166534;padding:10px;border-radius:8px;font-size:.85rem;margin-bottom:6px; border: 1px solid #bbf7d0;}
-.links{display:flex;justify-content:space-between;margin-top:16px;font-size:.85rem}.links a{color:#64748b;text-decoration:none}.links a:hover{color:#d97706}
+.err{background:rgba(220,38,38,.15);color:#f87171;padding:10px;border-radius:8px;font-size:.85rem;margin-bottom:6px;border:1px solid rgba(220,38,38,.3)}
+.ok{background:rgba(22,163,74,.15);color:#4ade80;padding:10px;border-radius:8px;font-size:.85rem;margin-bottom:6px;border:1px solid rgba(22,163,74,.3)}
+.links{display:flex;justify-content:space-between;margin-top:16px;font-size:.85rem}
+.links a{color:var(--text-dim);text-decoration:none}
+.links a:hover{color:var(--amber)}
 .status-icon { font-size: 3rem; margin-bottom: 10px; }
-.status-title { font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+.status-title { font-size: 1.2rem; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+.brand{text-align:center;margin-bottom:18px}
+.brand-logo{width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 10px;display:block;border:2px solid var(--border);background:var(--surface-2)}
 </style></head><body>
 <form class="card" method="post">
   
@@ -74,7 +92,11 @@ button:hover{background:#d97706;color:#fff}
     </div>
 
   <?php else: ?>
-    <h1>Reset Password</h1><p>Enter your account details and new password.</p>
+    <div class="brand">
+      <img src="logo.png" alt="Big Wallet Lounge" class="brand-logo">
+      <h1>Big Wallet Lounge</h1>
+    </div>
+    <p>Enter your account details and new password.</p>
     
     <?php if ($error): ?><div class="err"><?= e($error) ?></div><?php endif; ?>
 

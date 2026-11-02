@@ -50,25 +50,41 @@ $money = fn($n) => number_format((float)$n);
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Manager Dashboard</title>
     <style>
-        :root { --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0; --amber:#f59e0b; --green:#16a34a; --red:#dc2626; --blue:#2563eb; --purple:#8b5cf6; }
+        :root{
+            --navy:#0f172a;--slate:#334155;--muted:#64748b;--line:#e2e8f0;--amber:#f59e0b;--green:#16a34a;--red:#dc2626;--blue:#2563eb;--purple:#8b5cf6;
+            /* Dark theme (matches POS) */
+            --surface:#111c2e;
+            --surface-2:#16243a;
+            --surface-3:#1e2d47;
+            --text:#e2e8f0;
+            --text-dim:#94a3b8;
+            --text-mute:#64748b;
+            --border:#243349;
+        }
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); color: var(--navy); }
+        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0b1220; color: var(--text); }
         main { max-width: 1100px; margin: 26px auto; padding: 0 18px; }
-        h2 { margin: 0 0 4px; } .sub { color: var(--muted); margin: 0 0 20px; }
-        .group { font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 22px 0 10px; }
+        h2 { margin: 0 0 4px; color: var(--text); }
+        .sub { color: var(--text-dim); margin: 0 0 20px; }
+        .group { font-size: .75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .8px; margin: 22px 0 10px; }
         
         .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
-        .tile { background: #fff; border-radius: 12px; padding: 18px; border-left: 5px solid var(--slate); box-shadow: 0 1px 3px rgba(0,0,0,0.06); position: relative; }
-        .tile b { display: block; font-size: 1.7rem; } .tile small { color: var(--muted); }
+        .tile { background: var(--surface); border-radius: 12px; padding: 18px; border-left: 5px solid var(--text-dim); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,.3); position: relative; }
+        .tile b { display: block; font-size: 1.7rem; color: var(--text); }
+        .tile small { color: var(--text-dim); }
         
-        .tile.low { border-color: #ea580c; } .tile.out { border-color: var(--red); } 
-        .tile.spend { border-color: #f59e0b; } .tile.money { border-color: #16a34a; }
-        .tile.profit { border-color: #2563eb; } .tile.net { border-color: #16a34a; }
+        .tile.low { border-left-color: #ea580c; }
+        .tile.out { border-left-color: var(--red); }
+        .tile.spend { border-left-color: #f59e0b; }
+        .tile.money { border-left-color: #16a34a; }
+        .tile.profit { border-left-color: #2563eb; }
+        .tile.net { border-left-color: #16a34a; }
         
         .tile.link { display: block; text-decoration: none; color: inherit; cursor: pointer; transition: .15s; }
-        .tile.link:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0,0,0,.1); }
-        .tile .more { display: block; margin-top: 8px; font-size: .78rem; font-weight: 700; color: #16a34a; }
-        .tile.profit .more { color: #2563eb; } .tile.net .more { color: #16a34a; }
+        .tile.link:hover { transform: translateY(-3px); box-shadow: 0 8px 18px rgba(0,0,0,.5); }
+        .tile .more { display: block; margin-top: 8px; font-size: .78rem; font-weight: 700; color: #4ade80; }
+        .tile.profit .more { color: #60a5fa; }
+        .tile.net .more { color: #4ade80; }
         @media(max-width: 640px) {
             main { margin: 14px auto; padding: 0 12px; } 
             h2 { font-size: 1.2rem; }
@@ -89,14 +105,14 @@ $money = fn($n) => number_format((float)$n);
             <small>Total Sales Today</small><b><?= $money($salesToday) ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile profit link" href="sales_report.php?period=today">
-            <small>Gross Profit Today</small><b style="color:#2563eb;"><?= $money($profitToday) ?></b><span class="more">View details &rarr;</span>
+            <small>Gross Profit Today</small><b style="color:#60a5fa;"><?= $money($profitToday) ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile spend link" href="expenses.php">
             <small>Expenses Today</small><b><?= $money($expensesToday) ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile net link" href="sales_report.php?period=today">
             <small>Net Profit Today</small>
-            <b style="color: <?= $netProfitToday < 0 ? '#b91c1c' : '#16a34a' ?>; font-weight: <?= $netProfitToday < 0 ? '800' : '700' ?>;"><?= $money($netProfitToday) ?></b>
+            <b style="color: <?= $netProfitToday < 0 ? '#f87171' : '#4ade80' ?>; font-weight: <?= $netProfitToday < 0 ? '800' : '700' ?>;"><?= $money($netProfitToday) ?></b>
             <span class="more">View details &rarr;</span>
         </a>
         <a class="tile money link" href="room_collection.php?period=today">
@@ -115,14 +131,14 @@ $money = fn($n) => number_format((float)$n);
             <small>Total Sales This Month</small><b><?= $money($salesMonth) ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile profit link" href="sales_report.php?period=month">
-            <small>Gross Profit This Month</small><b style="color:#2563eb;"><?= $money($profitMonth) ?></b><span class="more">View details &rarr;</span>
+            <small>Gross Profit This Month</small><b style="color:#60a5fa;"><?= $money($profitMonth) ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile spend link" href="expenses.php">
             <small>Expenses This Month</small><b><?= $money($expensesMonth) ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile net link" href="sales_report.php?period=month">
             <small>Net Profit This Month</small>
-            <b style="color: <?= $netProfitMonth < 0 ? '#b91c1c' : '#16a34a' ?>; font-weight: <?= $netProfitMonth < 0 ? '800' : '700' ?>;"><?= $money($netProfitMonth) ?></b>
+            <b style="color: <?= $netProfitMonth < 0 ? '#f87171' : '#4ade80' ?>; font-weight: <?= $netProfitMonth < 0 ? '800' : '700' ?>;"><?= $money($netProfitMonth) ?></b>
             <span class="more">View details &rarr;</span>
         </a>
         <a class="tile money link" href="room_collection.php?period=month">

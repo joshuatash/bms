@@ -29,6 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Register - Business Manager</title>
 <style>
+:root{
+    --bg:#0b1220;
+    --surface:#111c2e;
+    --surface-2:#16243a;
+    --surface-3:#1e2d47;
+    --text:#e2e8f0;
+    --text-dim:#94a3b8;
+    --text-mute:#64748b;
+    --border:#243349;
+    --amber:#f59e0b;
+}
 *{box-sizing:border-box}
 body{
     margin:0;
@@ -37,23 +48,33 @@ body{
     place-items:center;
     padding:20px;
     font-family:'Segoe UI',system-ui,sans-serif;
-    background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+    background: #0b1220;
+    color: var(--text);
 }
-.card{background:#fff;width:min(420px,94vw);padding:34px 30px;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
-h1{margin:0 0 4px;font-size:1.5rem;color:#0f172a}p{margin:0 0 18px;color:#64748b;font-size:.9rem}
-label{display:block;font-size:.8rem;font-weight:600;color:#334155;margin:13px 0 6px}
-input{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:1rem}
-input:focus{outline:2px solid #f59e0b;border-color:#f59e0b}
-button,.btn{display:block;width:100%;margin-top:20px;padding:12px;border:0;border-radius:8px;background:#f59e0b;color:#1e293b;font-weight:700;font-size:1rem;cursor:pointer;text-align:center;text-decoration:none}
+.card{background:var(--surface);border:1px solid var(--border);width:min(420px,94vw);padding:34px 30px;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+h1{margin:0 0 4px;font-size:1.5rem;color:var(--text)}
+p{margin:0 0 18px;color:var(--text-dim);font-size:.9rem}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--text-dim);margin:13px 0 6px}
+input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:1rem;background:var(--surface-2);color:var(--text)}
+input::placeholder{color:var(--text-mute)}
+input:focus{outline:2px solid var(--amber);border-color:var(--amber);background:var(--surface-3)}
+button,.btn{display:block;width:100%;margin-top:20px;padding:12px;border:0;border-radius:8px;background:var(--amber);color:#0b1220;font-weight:700;font-size:1rem;cursor:pointer;text-align:center;text-decoration:none;transition:.15s;box-shadow:0 4px 6px -1px rgba(245,158,11,.3)}
 button:hover,.btn:hover{background:#d97706;color:#fff}
-.err{background:#fee2e2;color:#991b1b;padding:10px;border-radius:8px;font-size:.85rem;margin-bottom:6px}
-.ok{background:#dcfce7;color:#166534;padding:14px;border-radius:8px;font-size:.92rem;line-height:1.5}
-.links{display:flex;justify-content:space-between;margin-top:16px;font-size:.85rem}.links a{color:#64748b;text-decoration:none}
+.err{background:rgba(220,38,38,.15);color:#f87171;padding:10px;border-radius:8px;font-size:.85rem;margin-bottom:6px;border:1px solid rgba(220,38,38,.3)}
+.ok{background:rgba(22,163,74,.15);color:#4ade80;padding:14px;border-radius:8px;font-size:.92rem;line-height:1.5;border:1px solid rgba(22,163,74,.3)}
+.links{display:flex;justify-content:space-between;margin-top:16px;font-size:.85rem}
+.links a{color:var(--text-dim);text-decoration:none}
+.links a:hover{color:var(--amber)}
 .hp{position:absolute;left:-9999px;height:0;overflow:hidden}
-.pw{position:relative}.pw input{padding-right:48px}
-.pw .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;margin:0;padding:0;background:transparent;border:0;border-radius:8px;color:#64748b;display:grid;place-items:center;cursor:pointer}
-.pw .eye:hover{background:#f1f5f9;color:#0f172a}
-.pw .eye .i-hide{display:none}.pw .eye.on .i-hide{display:block}.pw .eye.on .i-show{display:none}
+.pw{position:relative}
+.pw input{padding-right:48px}
+.pw .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;margin:0;padding:0;background:transparent;border:0;border-radius:8px;color:var(--text-dim);display:grid;place-items:center;cursor:pointer;transition:.15s}
+.pw .eye:hover{background:var(--surface-3);color:var(--text)}
+.pw .eye .i-hide{display:none}
+.pw .eye.on .i-hide{display:block}
+.pw .eye.on .i-show{display:none}
+.brand{text-align:center;margin-bottom:18px}
+.brand-logo{width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 10px;display:block;border:2px solid var(--border);background:var(--surface-2)}
 </style></head><body>
 <div class="card">
 <?php if ($done): ?>
@@ -63,7 +84,11 @@ button:hover,.btn:hover{background:#d97706;color:#fff}
   <a class="btn" href="login.php">Go to Login</a>
 <?php else: ?>
   <form method="post" autocomplete="off">
-    <h1>Create Account</h1><p>Register to use the Point of Sale</p>
+    <div class="brand">
+      <img src="logo.png" alt="Big Wallet Lounge" class="brand-logo">
+      <h1>Big Wallet Lounge</h1>
+    </div>
+    <p>Register to use the Point of Sale</p>
     <?php if ($error): ?><div class="err"><?= e($error) ?></div><?php endif; ?>
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
     <div class="hp"><label>Leave empty</label><input name="website" tabindex="-1"></div>

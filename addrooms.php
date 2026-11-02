@@ -6,41 +6,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Add Room</title>
     <style>
-        :root { --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0; --amber:#f59e0b; --green:#16a34a; --red:#dc2626; }
+        :root{
+            --navy:#0f172a;--slate:#334155;--muted:#64748b;--line:#e2e8f0;--amber:#f59e0b;--green:#16a34a;--red:#dc2626;
+            /* Dark theme (matches POS) */
+            --surface:#111c2e;
+            --surface-2:#16243a;
+            --surface-3:#1e2d47;
+            --text:#e2e8f0;
+            --text-dim:#94a3b8;
+            --text-mute:#64748b;
+            --border:#243349;
+        }
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); color: var(--navy); min-height: 100vh; }
+        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0b1220; color: var(--text); min-height: 100vh; }
         main { max-width: 1000px; margin: 24px auto; padding: 0 18px; display: grid; gap: 20px; }
         
-        .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-        .card h2 { margin: 0 0 14px; font-size: 1.05rem; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,.3); }
+        .card h2 { margin: 0 0 14px; font-size: 1.05rem; color: var(--text); }
         
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; align-items: end; }
-        label { display: block; font-size: .75rem; font-weight: 700; color: var(--slate); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .4px; }
-        input, select { width: 100%; padding: 10px 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: .95rem; background: #fff; }
+        label { display: block; font-size: .75rem; font-weight: 700; color: var(--text-dim); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .4px; }
+        input, select { width: 100%; padding: 10px 11px; border: 1px solid var(--border); border-radius: 8px; font-size: .95rem; background: var(--surface-2); color: var(--text); }
+        input::placeholder { color: var(--text-mute); }
         
         /* Force uppercase visually */
         input#num, input#type { text-transform: uppercase; }
         
-        input:focus, select:focus { outline: 2px solid var(--amber); border-color: var(--amber); }
+        input:focus, select:focus { outline: 2px solid var(--amber); border-color: var(--amber); background: var(--surface-3); }
         
-        .btn { border: 0; border-radius: 8px; padding: 10px 18px; font-weight: 700; cursor: pointer; font-size: .9rem; text-decoration: none; display: inline-block; text-align: center; }
-        .btn.primary { background: var(--amber); color: var(--navy); }
+        .btn { border: 0; border-radius: 8px; padding: 10px 18px; font-weight: 700; cursor: pointer; font-size: .9rem; text-decoration: none; display: inline-block; text-align: center; transition: .15s; }
+        .btn.primary { background: var(--amber); color: #0b1220; box-shadow: 0 4px 6px -1px rgba(245,158,11,.3); }
         .btn.primary:hover:not(:disabled) { background: #d97706; color: #fff; }
-        .btn:disabled { opacity: .55; cursor: not-allowed; }
+        .btn:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
         
-        .hint { font-size: .85rem; margin-top: 10px; min-height: 1.2em; color: var(--muted); }
-        .hint.good { color: var(--green); } .hint.bad { color: var(--red); }
+        .hint { font-size: .85rem; margin-top: 10px; min-height: 1.2em; color: var(--text-dim); }
+        .hint.good { color: #4ade80; }
+        .hint.bad { color: #f87171; }
         
         .tablewrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: .92rem; }
-        th { text-align: left; background: #f8fafc; color: var(--slate); padding: 11px 12px; font-size: .75rem; text-transform: uppercase; border-bottom: 2px solid var(--line); }
-        td { padding: 11px 12px; border-bottom: 1px solid var(--line); }
+        table { width: 100%; border-collapse: collapse; font-size: .92rem; color: var(--text); }
+        th { text-align: left; background: var(--surface-2); color: var(--text-dim); padding: 11px 12px; font-size: .75rem; text-transform: uppercase; border-bottom: 2px solid var(--border); }
+        td { padding: 11px 12px; border-bottom: 1px solid var(--border); }
         .num { text-align: right; }
         
         .badge { padding: 4px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
-        .badge.available { background: #dcfce7; color: #166534; }
-        .badge.occupied { background: #dbeafe; color: #1e40af; }
-        .badge.maintenance { background: #ffedd5; color: #9a3412; }
+        .badge.available { background: rgba(22,163,74,.2); color: #4ade80; }
+        .badge.occupied { background: rgba(37,99,235,.2); color: #60a5fa; }
+        .badge.maintenance { background: rgba(234,88,12,.2); color: #fb923c; }
         
         .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
         
@@ -60,10 +72,10 @@
             /* Turn Tables into Cards */
             .rt thead { display: none; }
             .rt, .rt tbody, .rt tr, .rt td { display: block; width: 100%; }
-            .rt tr { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; padding: 8px 12px; background: #f8fafc; }
-            .rt td { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #f1f5f9; padding: 8px 2px; text-align: right; }
+            .rt tr { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; padding: 8px 12px; background: var(--surface-2); }
+            .rt td { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); padding: 8px 2px; text-align: right; }
             .rt td:last-child { border-bottom: 0; padding-bottom: 0; }
-            .rt td::before { content: attr(data-label); font-weight: 700; font-size: .68rem; text-transform: uppercase; color: var(--muted); text-align: left; flex-shrink: 0; }
+            .rt td::before { content: attr(data-label); font-weight: 700; font-size: .68rem; text-transform: uppercase; color: var(--text-dim); text-align: left; flex-shrink: 0; }
             .rt td[colspan]::before { content: none; } .rt td[colspan] { display: block; text-align: center; }
         }
     </style>
@@ -145,9 +157,9 @@ async function load() {
                 <td class="num" data-label="Short">${fmt(x.short_price)}</td>
                 <td class="num" data-label="Long">${fmt(x.long_price)}</td>
                 <td data-label="Status"><span class="badge ${x.status}">${LABEL[x.status]}</span></td>
-            </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:26px">No rooms yet. Add the first one above.</td></tr>';
+            </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--text-mute);padding:26px">No rooms yet. Add the first one above.</td></tr>';
     } catch (e) {
-        $('tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#dc2626;padding:26px">' + esc(e.message) + '</td></tr>';
+        $('tbody').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#f87171;padding:26px">' + esc(e.message) + '</td></tr>';
     }
 }
 

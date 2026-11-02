@@ -4,11 +4,6 @@ if (current_user()) { header('Location: ' . home_for(current_user()['role'])); e
 
 $error = '';
 
-// NEW: Check if HR forced a logout
-if (isset($_GET['msg']) && $_GET['msg'] === 'force_logout') {
-    $error = 'You have been logged out by the System Administrator.';
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $st = db()->prepare("SELECT user_id, full_name, username, password_hash, pending_password_hash, role, is_active FROM users WHERE username = ?");
     $st->execute([trim($_POST['username'] ?? '')]);
@@ -39,7 +34,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } else {
         $error = 'Wrong username or password.';
-        log_activity('login_failed', 'Attempted username: ' . mb_substr(trim($_POST['username'] ?? ''), 0, 50), ['user_id' => $u['user_id'] ?? null, 'username' => $u['username'] ?? mb_substr(trim($_POST['username'] ?? ''), 0, 50)]);
+        if (!$u) {
+            $reason = 'Unknown username';
+        } elseif (!$u['is_active']) {
+            $reason = 'Account is disabled';
+        } else {
+            $reason = 'Wrong password';
+        }
+        log_activity('login_failed', $reason, ['user_id' => $u['user_id'] ?? null, 'username' => $u['username'] ?? mb_substr(trim($_POST['username'] ?? ''), 0, 50)]);
     }
 }
 ?>
@@ -47,22 +49,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Login - Business Manager</title>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#0f172a,#1e293b 60%,#334155)}
-.card{background:linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);width:min(380px,92vw);padding:36px 32px;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
-h1{margin:0 0 4px;font-size:1.5rem;color:#0f172a}p{margin:0 0 22px;color:#64748b;font-size:.9rem}
-label{display:block;font-size:.8rem;font-weight:600;color:#334155;margin:14px 0 6px}
-input{width:100%;padding:11px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:1rem}
-input:focus{outline:2px solid #f59e0b;border-color:#f59e0b}
-button{width:100%;margin-top:22px;padding:12px;border:0;border-radius:8px;background:#f59e0b;color:#1e293b;font-weight:700;font-size:1rem;cursor:pointer}
-button:hover{background:#d97706;color:#fff}.err{background:#fee2e2;color:#991b1b;padding:10px;border-radius:8px;font-size:.85rem;margin-bottom:6px; font-weight:600;}
-.links{display:flex;justify-content:space-between;margin-top:16px;font-size:.85rem}.links a{color:#64748b;text-decoration:none}.links a:hover{color:#d97706}
-.pw{position:relative}.pw input{padding-right:48px}
-.pw .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;margin:0;padding:0;background:transparent;border:0;border-radius:8px;color:#64748b;display:grid;place-items:center;cursor:pointer}
-.pw .eye:hover{background:#f1f5f9;color:#0f172a}
-.pw .eye .i-hide{display:none}.pw .eye.on .i-hide{display:block}.pw .eye.on .i-show{display:none}
+:root{
+    --bg:#0b1220;
+    --surface:#111c2e;
+    --surface-2:#16243a;
+    --surface-3:#1e2d47;
+    --text:#e2e8f0;
+    --text-dim:#94a3b8;
+    --text-mute:#64748b;
+    --border:#243349;
+    --amber:#f59e0b;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:'Segoe UI',system-ui,sans-serif;background:#0b1220}
+.card{background:var(--surface);border:1px solid var(--border);width:min(380px,92vw);padding:36px 32px;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+h1{margin:0 0 4px;font-size:1.5rem;color:var(--text)}
+p{margin:0 0 22px;color:var(--text-dim);font-size:.9rem}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--text-dim);margin:14px 0 6px}
+input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:8px;font-size:1rem;background:var(--surface-2);color:var(--text)}
+input::placeholder{color:var(--text-mute)}
+input:focus{outline:2px solid var(--amber);border-color:var(--amber);background:var(--surface-3)}
+button{width:100%;margin-top:22px;padding:12px;border:0;border-radius:8px;background:var(--amber);color:#0b1220;font-weight:700;font-size:1rem;cursor:pointer;transition:.15s;box-shadow:0 4px 6px -1px rgba(245,158,11,.3)}
+button:hover{background:#d97706;color:#fff}
+.err{background:rgba(220,38,38,.15);color:#f87171;padding:10px;border-radius:8px;font-size:.85rem;margin-bottom:6px;font-weight:600;border:1px solid rgba(220,38,38,.3)}
+.links{display:flex;justify-content:space-between;margin-top:16px;font-size:.85rem}
+.links a{color:var(--text-dim);text-decoration:none}
+.links a:hover{color:var(--amber)}
+.pw{position:relative}
+.pw input{padding-right:48px}
+.pw .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;margin:0;padding:0;background:transparent;border:0;border-radius:8px;color:var(--text-dim);display:grid;place-items:center;cursor:pointer;transition:.15s}
+.pw .eye:hover{background:var(--surface-3);color:var(--text)}
+.pw .eye .i-hide{display:none}
+.pw .eye.on .i-hide{display:block}
+.pw .eye.on .i-show{display:none}
+.brand{text-align:center;margin-bottom:18px}
+.brand-logo{width:64px;height:64px;border-radius:50%;object-fit:cover;margin:0 auto 10px;display:block;border:2px solid var(--border);background:var(--surface-2)}
 </style></head><body>
 <form class="card" method="post">
-  <h1>Business Manager</h1><p>Sign in to continue</p>
+  <div class="brand">
+    <img src="logo.png" alt="Big Wallet Lounge" class="brand-logo">
+    <h1>Big Wallet Lounge</h1>
+  </div>
+  <p>Sign in to continue</p>
   <?php if ($error): ?><div class="err"><?= e($error) ?></div><?php endif; ?>
   
   <label>Username</label>
@@ -75,7 +103,7 @@ button:hover{background:#d97706;color:#fff}.err{background:#fee2e2;color:#991b1b
   </div>
   
   <div style="text-align: right; margin-top: 8px;">
-      <a href="forgot_password.php" style="font-size: 0.8rem; color: #64748b; text-decoration: none;">Forgot Password?</a>
+      <a href="forgot_password.php" style="font-size: 0.8rem; color: var(--text-dim); text-decoration: none;">Forgot Password?</a>
   </div>
   <button>Sign In</button>
   <div class="links"><a href="register.php">Create an account</a><a href="index.html">&larr; Home</a></div>

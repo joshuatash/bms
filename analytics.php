@@ -52,49 +52,62 @@ $money = fn($n) => number_format((float)$n);
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Business Analytics - Reports</title>
     <style>
-        :root { --navy:#0f172a; --slate:#334155; --muted:#64748b; --line:#e2e8f0; --amber:#f59e0b; --green:#16a34a; --red:#dc2626; --blue:#2563eb; --purple:#8b5cf6; }
+        :root{
+            --navy:#0f172a;--slate:#334155;--muted:#64748b;--line:#e2e8f0;--amber:#f59e0b;--green:#16a34a;--red:#dc2626;--blue:#2563eb;--purple:#8b5cf6;
+            /* Dark theme (matches POS) */
+            --surface:#111c2e;
+            --surface-2:#16243a;
+            --surface-3:#1e2d47;
+            --text:#e2e8f0;
+            --text-dim:#94a3b8;
+            --text-mute:#64748b;
+            --border:#243349;
+        }
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); color: var(--navy); }
+        body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0b1220; color: var(--text); }
         main { max-width: 1100px; margin: 24px auto; padding: 0 18px; display: grid; gap: 20px; }
         
         .head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
-        .head h2 { margin: 0; font-size: 1.4rem; } .head p { margin: 2px 0 0; color: var(--muted); }
+        .head h2 { margin: 0; font-size: 1.4rem; color: var(--text); }
+        .head p { margin: 2px 0 0; color: var(--text-dim); }
         
         .actions { display: flex; gap: 8px; }
-        .btn { display: inline-block; border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 700; cursor: pointer; font-size: .9rem; text-decoration: none; text-align: center; }
-        .btn.tab { background: #fff; color: var(--slate); border: 1px solid var(--line); }
-        .btn.tab.on { background: var(--navy); color: #fff; border-color: var(--navy); }
-        .btn.primary { background: var(--amber); color: var(--navy); } 
+        .btn { display: inline-block; border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 700; cursor: pointer; font-size: .9rem; text-decoration: none; text-align: center; transition: .15s; }
+        .btn.tab { background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); }
+        .btn.tab:hover { background: var(--surface-3); color: var(--text); }
+        .btn.tab.on { background: var(--amber); color: #0b1220; border-color: var(--amber); }
+        .btn.primary { background: var(--amber); color: #0b1220; box-shadow: 0 4px 6px -1px rgba(245,158,11,.3); }
         .btn.primary:hover { background: #d97706; color: #fff; }
 
         /* Summary Tiles */
         .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
-        .tile { background: #fff; border-radius: 12px; padding: 16px 18px; border-left: 5px solid var(--slate); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-        .tile small { color: var(--slate); font-weight: 600; text-transform: uppercase; font-size: 0.72rem; } 
-        .tile b { display: block; font-size: 1.4rem; margin-top: 4px; }
-        .tile.money { border-color: var(--green); }
-        .tile.profit { border-color: var(--blue); }
-        .tile.net { border-color: var(--green); }
-        .tile.spend { border-color: var(--red); }
+        .tile { background: var(--surface); border-radius: 12px; padding: 16px 18px; border-left: 5px solid var(--text-dim); border-top: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0,0,0,.3); }
+        .tile small { color: var(--text-dim); font-weight: 600; text-transform: uppercase; font-size: 0.72rem; }
+        .tile b { display: block; font-size: 1.4rem; margin-top: 4px; color: var(--text); }
+        .tile.money { border-left-color: var(--green); }
+        .tile.profit { border-left-color: var(--blue); }
+        .tile.net { border-left-color: var(--green); }
+        .tile.spend { border-left-color: var(--red); }
 
         /* Chart Grid Layout */
         .chart-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
-        .chart-box { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; flex-direction: column; align-items: center; }
-        .chart-title { font-size: 0.95rem; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.5px; align-self: flex-start; margin-bottom: 20px; }
+        .chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,.3); display: flex; flex-direction: column; align-items: center; }
+        .chart-title { font-size: 0.95rem; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; align-self: flex-start; margin-bottom: 20px; }
         
         /* Pie Chart Styling */
-        .pie-chart { width: 160px; height: 160px; border-radius: 50%; position: relative; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .pie-hole { position: absolute; inset: 35px; background: #fff; border-radius: 50%; display: grid; place-items: center; font-size: 0.75rem; font-weight: 700; color: var(--muted); text-align: center; }
+        .pie-chart { width: 160px; height: 160px; border-radius: 50%; position: relative; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,.4); }
+        .pie-hole { position: absolute; inset: 35px; background: var(--surface); border-radius: 50%; display: grid; place-items: center; font-size: 0.75rem; font-weight: 700; color: var(--text-dim); text-align: center; line-height: 1.3; }
 
         /* Legend & Keys */
-        .legend { width: 100%; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; font-weight: 600; color: var(--slate); margin-top: 10px; }
-        .legend-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+        .legend { width: 100%; display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem; font-weight: 600; color: var(--text-dim); margin-top: 10px; }
+        .legend-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+        .legend-row span { color: var(--text); }
         .legend-item { display: flex; align-items: center; gap: 8px; }
         .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 
         /* Interpretation box */
-        .interpretation { background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-top: 15px; font-size: 0.82rem; color: var(--slate); line-height: 1.4; width: 100%; }
-        .interpretation b { color: var(--navy); }
+        .interpretation { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-top: 15px; font-size: 0.82rem; color: var(--text-dim); line-height: 1.4; width: 100%; }
+        .interpretation b { color: var(--text); }
 
         .printonly { display: none; }
 
@@ -110,9 +123,13 @@ $money = fn($n) => number_format((float)$n);
         /* --- PRINT STYLES --- */
         @media print {
             .sidebar, .mbar, .scrim, .noprint { display: none !important; }
-            body { padding: 0 !important; background: #fff; }
+            body { padding: 0 !important; background: #fff; color: #0f172a; }
             main { margin: 0; padding: 0; max-width: none; gap: 12px; }
-            .tile, .chart-box { box-shadow: none; border: 1px solid #cbd5e1; }
+            .tile, .chart-box { box-shadow: none; border: 1px solid #cbd5e1; background: #fff; }
+            .head h2, .chart-title, .tile b { color: #0f172a; }
+            .head p, .tile small, .legend, .interpretation { color: #334155; }
+            .pie-hole { background: #fff; color: #64748b; }
+            .interpretation { background: #f8fafc; }
             .printonly { display: block; }
             @page { size: A4 landscape; margin: 10mm; }
         }
@@ -142,15 +159,15 @@ $money = fn($n) => number_format((float)$n);
         </div>
         <div class="tile profit">
             <small>Gross Profit on Sales</small>
-            <b style="color:var(--blue);"><?= CURRENCY ?> <?= $money($totalProfit) ?></b>
+            <b style="color:#60a5fa;"><?= CURRENCY ?> <?= $money($totalProfit) ?></b>
         </div>
         <div class="tile spend">
             <small>Operating Expenses</small>
-            <b style="color:var(--red);"><?= CURRENCY ?> <?= $money($totalExp) ?></b>
+            <b style="color:#f87171;"><?= CURRENCY ?> <?= $money($totalExp) ?></b>
         </div>
         <div class="tile net">
             <small>Net Profit (After Expenses)</small>
-            <b style="color:var(--green);"><?= CURRENCY ?> <?= $money($netProfit) ?></b>
+            <b style="color:#4ade80;"><?= CURRENCY ?> <?= $money($netProfit) ?></b>
         </div>
     </section>
 
@@ -203,7 +220,7 @@ $money = fn($n) => number_format((float)$n);
             $conicParts[] = "{$color} {$currentDeg}% {$nextDeg}%";
             $currentDeg = $nextDeg;
         }
-        $conicProducts = count($conicParts) > 0 ? "conic-gradient(" . implode(', ', $conicParts) . ")" : "#e2e8f0";
+        $conicProducts = count($conicParts) > 0 ? "conic-gradient(" . implode(', ', $conicParts) . ")" : "var(--surface-2)";
         ?>
         <div class="chart-box">
             <div class="chart-title">2. Top Selling Products (by Revenue)</div>
@@ -212,7 +229,7 @@ $money = fn($n) => number_format((float)$n);
             </div>
             <div class="legend">
                 <?php if (empty($topProductsList)): ?>
-                    <div style="text-align:center; color:var(--muted); padding:10px;">No product sales recorded for this period.</div>
+                    <div style="text-align:center; color:var(--text-mute); padding:10px;">No product sales recorded for this period.</div>
                 <?php else: foreach ($topProductsList as $idx => $prod): 
                     $share = $topRevTotal > 0 ? ($prod['revenue'] / $topRevTotal) * 100 : 0;
                     $color = $prodColors[$idx % count($prodColors)];
