@@ -159,5 +159,6 @@ document.querySelectorAll('.pw .eye').forEach(b => b.addEventListener('click', (
   b.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
   inp.focus();
 }));
+
 </script>
 </body></html>

@@ -111,13 +111,13 @@ try {
             if ($paid > $total) $fail('Amount paid cannot be more than the total (' . number_format($total) . ').');
 
             $pdo->prepare("INSERT INTO room_bookings (booking_no, room_id, guest_name, guest_phone, guest_id_no, guests, booking_type, nights, price_per_night, total_amount, booked_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-                ->execute(['TMP', $rid, $guest, $phone ?: null, $idno ?: null, $guests, $type, $nights, $rate, $total, $user['id']]);
+                ->execute(['TMP', $rid, $guest, $phone ?: null, $idno ?: null, $guests, $type, $nights, $rate, $total, $user['user_id']]);
             $bid = (int)$pdo->lastInsertId();
             $no = 'B' . str_pad((string)$bid, 6, '0', STR_PAD_LEFT);
             $pdo->prepare("UPDATE room_bookings SET booking_no = ? WHERE booking_id = ?")->execute([$no, $bid]);
             
             if ($paid > 0) {
-                $pdo->prepare("INSERT INTO room_payments (booking_id, amount, method, received_by) VALUES (?,?,?,?)")->execute([$bid, $paid, $method, $user['id']]);
+                $pdo->prepare("INSERT INTO room_payments (booking_id, amount, method, received_by) VALUES (?,?,?,?)")->execute([$bid, $paid, $method, $user['user_id']]);
             }
             $pdo->prepare("UPDATE rooms SET status = 'occupied', status_note = NULL WHERE room_id = ?")->execute([$rid]);
             $pdo->commit();
@@ -141,7 +141,7 @@ try {
             if ($balance <= 0) $fail('This booking is already fully paid.');
             if ($amt > $balance) $fail('That is more than the balance owed (' . number_format($balance) . ').');
             
-            $pdo->prepare("INSERT INTO room_payments (booking_id, amount, method, received_by) VALUES (?,?,?,?)")->execute([$bid, $amt, $method, $user['id']]);
+            $pdo->prepare("INSERT INTO room_payments (booking_id, amount, method, received_by) VALUES (?,?,?,?)")->execute([$bid, $amt, $method, $user['user_id']]);
             $pdo->commit();
             log_activity('room_payment', "{$b['booking_no']} (room {$b['room_number']}): received " . number_format($amt) . " ($method)");
             json_out(['ok' => true, 'message' => 'Payment saved.', 'balance' => $balance - $amt]);
@@ -156,7 +156,7 @@ try {
             if (!$b || $b['status'] !== 'active') $fail('This guest is not checked in.', 409);
             $owed = max(0, round((float)$b['total_amount'] - paid_for($pdo, $bid), 2));
             
-            $pdo->prepare("UPDATE room_bookings SET status = 'checked_out', checked_out_at = NOW(), checked_out_by = ? WHERE booking_id = ?")->execute([$user['id'], $bid]);
+            $pdo->prepare("UPDATE room_bookings SET status = 'checked_out', checked_out_at = NOW(), checked_out_by = ? WHERE booking_id = ?")->execute([$user['user_id'], $bid]);
             $pdo->prepare("UPDATE rooms SET status = 'maintenance', status_note = 'Guest left - clean and inspect' WHERE room_id = ?")->execute([$b['room_id']]);
             $pdo->commit();
             log_activity('room_checkout', "{$b['booking_no']}: room {$b['room_number']}, {$b['guest_name']} left" . ($owed > 0 ? ", balance owed " . number_format($owed) : ''));
