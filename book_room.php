@@ -164,7 +164,7 @@
     <div class="big" id="dTotal"></div>
     <div id="dBal" class="muted"></div>
     <div class="row">
-        <a class="btn ghost" id="dPrint" target="_blank">Print Receipt</a>
+        <button class="btn ghost" id="dPrint">Print Receipt</button>
         <button class="btn primary" id="dClose">Done</button>
     </div>
 </div></div>
@@ -203,6 +203,7 @@ $('fGuest').addEventListener('input', e => forceUppercase(e.target));
 $('fIdNo').addEventListener('input', e => forceUppercase(e.target));
 
 let all = [], sel = null, paidTouched = false, payFor = null, btype = 'short';
+let lastBookingData = null; 
 
 const rate = () => btype === 'short' ? +sel.short_price : +sel.long_price;
 
@@ -238,6 +239,8 @@ function render() {
     $('occ').innerHTML = oc.length ? oc.map(x => {
         const overdue = localDate(x.due_out) < localDate(todayStr()) ? '<span class="tag">Overdue</span>' : '';
         const bal = +x.balance;
+        // Pass the entire JSON string object safely into printReceipt
+        const safeJson = encodeURIComponent(JSON.stringify(x));
         return `<tr>
             <td data-label="Room"><b>${esc(x.room_number)}</b><span class="kind">${x.booking_type === 'short' ? 'Short' : 'Long'}</span></td>
             <td data-label="Guest">${esc(x.guest_name)}${x.guest_phone ? `<br><span class="muted">${esc(x.guest_phone)}</span>` : ''}</td>
@@ -249,7 +252,7 @@ function render() {
             <td data-label="Actions">
                 ${bal > 0 ? `<button class="btn sm pay" data-pay="${x.booking_id}">Receive Payment</button> ` : ''}
                 <button class="btn sm out" data-out="${x.booking_id}">Check Out</button>
-                <a class="btn sm ghost" href="receipt.php?id=${x.booking_id}" target="_blank">Receipt</a>
+                <button class="btn sm ghost" onclick="printReceiptFromData('${safeJson}')">Receipt</button>
             </td>
         </tr>`;
     }).join('') : `<tr><td colspan="8" class="empty">No guests checked in.</td></tr>`;
@@ -325,13 +328,33 @@ $('bookBtn').onclick = async () => {
             showToast('Room booked successfully!');
             $('dNo').textContent = r.booking_no; $('dTotal').textContent = CUR + ' ' + fmt(r.total);
             $('dBal').textContent = r.balance > 0 ? 'Balance still owed: ' + CUR + ' ' + fmt(r.balance) : 'Fully paid';
-            $('dPrint').href = 'receipt.php?id=' + r.booking_id;
+            
+            // Save data for the receipt button after fresh booking
+            lastBookingData = {
+                booking_no: r.booking_no,
+                guest_name: $('fGuest').value,
+                guest_phone: $('fPhone').value,
+                room_number: sel.room_number,
+                booking_type: btype,
+                nights: btype === 'short' ? 1 : $('fNights').value,
+                total_amount: r.total,
+                paid: $('fPaid').value || 0,
+                balance: r.balance
+            };
+
             $('done').classList.add('open'); clearSel(); load();
         }
     } catch (err) { $('hint').textContent = 'Network problem. Nothing was saved.'; $('hint').className = 'hint bad'; }
     $('bookBtn').disabled = false; $('bookBtn').textContent = 'Book Room';
 };
+
 $('dClose').onclick = () => $('done').classList.remove('open');
+$('dPrint').onclick = () => {
+    if (lastBookingData) {
+        printReceipt(lastBookingData);
+    }
+    $('done').classList.remove('open');
+};
 
 $('occ').addEventListener('click', async e => {
     const d = e.target.dataset;
@@ -362,6 +385,81 @@ $('mnt').addEventListener('click', async e => {
     else showToast('Room marked as available.');
     load();
 });
+
+// Helper parser for table buttons
+function printReceiptFromData(encodedJson) {
+    const data = JSON.parse(decodeURIComponent(encodedJson));
+    printReceipt(data);
+}
+
+// Universal Receipt Generator
+function printReceipt(data) {
+    const dateStr = new Date().toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true});
+    const typeStr = data.booking_type === 'short' ? 'Short Stay' : `Long Stay (${data.nights} night${data.nights > 1 ? 's' : ''})`;
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Room Receipt - ${esc(data.booking_no)}</title>
+            <style>
+                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; color: #0f172a; display: flex; justify-content: center; background: #fff; }
+                .receipt { width: 340px; border: 1px solid #cbd5e1; padding: 22px; border-radius: 12px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+                .center { text-align: center; }
+                .logo-img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; margin-bottom: 6px; background: #0f172a; }
+                h1 { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: 0.3px; color: #0f172a; }
+                .sub-header { font-size: 0.73rem; color: #64748b; line-height: 1.3; margin-top: 2px; }
+                .badge-title { display: inline-block; background: #f1f5f9; color: #0f172a; font-weight: 700; font-size: 0.75rem; padding: 5px 14px; border-radius: 6px; margin: 10px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .date-str { font-size: 0.78rem; color: #64748b; margin-bottom: 12px; }
+                hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 10px 0; }
+                .info-table { width: 100%; font-size: 0.88rem; margin-bottom: 6px; }
+                .info-table td { padding: 4px 0; vertical-align: top; }
+                .info-table td.val { text-align: right; font-weight: 700; color: #0f172a; }
+                .totals-table { width: 100%; font-size: 0.92rem; margin-top: 6px; font-weight: 800; }
+                .totals-table td { padding: 5px 0; }
+                .totals-table td.val { text-align: right; }
+                .footer-note { text-align: center; font-size: 0.76rem; font-style: italic; color: #64748b; margin-top: 16px; }
+                @media print { body { padding: 0; background: #fff; } .receipt { border: none; padding: 0; width: 100%; box-shadow: none; } }
+            </style>
+        </head>
+        <body>
+            <div class="receipt">
+                <div class="center">
+                    <img src="logo.png" class="logo-img" alt="Logo">
+                    <h1>BIG WALLET LOUNGE - BALA</h1>
+                    <div class="sub-header">
+                        Te-Cambia B, Bala Town Council, Kole District<br>
+                        WhatsApp: +211925830541 | Tel: 0787072542<br>
+                        Email: info@bigwalletlounge.com
+                    </div>
+                    <div class="badge-title">Room Booking Receipt</div>
+                    <div class="date-str">Date: ${dateStr}</div>
+                </div>
+                <hr>
+                <table class="info-table">
+                    <tr><td>Booking No:</td><td class="val">${esc(data.booking_no)}</td></tr>
+                    <tr><td>Guest Name:</td><td class="val">${esc(data.guest_name)}</td></tr>
+                    ${data.guest_phone ? `<tr><td>Phone:</td><td class="val">${esc(data.guest_phone)}</td></tr>` : ''}
+                    <tr><td>Room:</td><td class="val">${esc(data.room_number)}</td></tr>
+                    <tr><td>Type:</td><td class="val">${typeStr}</td></tr>
+                </table>
+                <hr>
+                <table class="totals-table">
+                    <tr><td>TOTAL AMOUNT:</td><td class="val">${CUR} ${fmt(data.total_amount)}</td></tr>
+                    <tr><td>AMOUNT PAID:</td><td class="val" style="color: #16a34a;">${CUR} ${fmt(data.paid)}</td></tr>
+                    <tr><td style="color: #dc2626;">BALANCE DUE:</td><td class="val" style="color: #dc2626;">${CUR} ${fmt(data.balance)}</td></tr>
+                </table>
+                <hr>
+                <div class="footer-note">Thank you for choosing Big Wallet Lounge!</div>
+            </div>
+            <script>
+                window.onload = function() { window.print(); }
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
 
 load();
 </script>
