@@ -105,6 +105,29 @@ function when(?string $t): string {
     return $t ? '<span class="local-time" data-time="'.htmlspecialchars($t).'">'.date('d M Y, h:i A', strtotime($t)).'</span>' : '—'; 
 }
 
+// Helper: Live lookup if the database has a placeholder location
+function resolve_live_location($ip, $storedLocation) {
+    if (!$ip) return 'Unknown';
+    if ($ip === '::1' || $ip === '127.0.0.1') return 'Local Network';
+    
+    // If it's already a good location, return it
+    if ($storedLocation && !in_array(strtolower($storedLocation), ['unknown', 'local network', 'kampala central', ''])) {
+        return $storedLocation;
+    }
+    
+    // Otherwise, do a live lookup
+    $ctx = stream_context_create(['http' => ['timeout' => 2, 'ignore_errors' => true]]);
+    $json = @file_get_contents("http://ip-api.com/json/{$ip}?fields=status,country,regionName,city", false, $ctx);
+    if ($json) {
+        $d = json_decode($json, true);
+        if ($d && $d['status'] === 'success') {
+            $parts = array_filter([$d['city'], $d['regionName'], $d['country']]);
+            if ($parts) return implode(', ', $parts);
+        }
+    }
+    return $storedLocation ?: 'Unknown Location';
+}
+
 $view = ($_GET['view'] ?? 'sessions') === 'activity' ? 'activity' : 'sessions';
 $page = max(1, (int)($_GET['page'] ?? 1));
 $per = 50; $offset = ($page - 1) * $per;
@@ -341,6 +364,9 @@ td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
                                 if ($r['logout_time']) { $st = ['Logged out', 's-out']; } 
                                 elseif ((int)$r['idle_min'] <= 15) { $st = ['Active', 's-active']; } 
                                 else { $st = ['Ended without logout', 's-lost']; } 
+                                
+                                // LIVE LOCATION LOOKUP
+                                $liveLoc = resolve_live_location($r['ip_address'], $r['location']);
                             ?>
                                 <tr>
                                     <td data-label="User"><b><?= e($r['username']) ?></b><?php if ($r['full_name']): ?><br><span class="muted"><?= e($r['full_name']) ?></span><?php endif; ?></td>
@@ -350,8 +376,7 @@ td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
                                     <td data-label="Duration"><?= e(dur((int)$r['dur_min'])) ?></td>
                                     <td data-label="Device"><?= e(device((string)$r['user_agent'])) ?></td>
                                     <td data-label="Location">
-                                        <!-- Read from database instead of live API -->
-                                        <span style="font-weight: 600;"><?= e($r['location'] ?? 'Unknown') ?></span><br>
+                                        <span style="font-weight: 600;"><?= e($liveLoc) ?></span><br>
                                         <small class="muted">IP: <?= e($r['ip_address']) ?></small>
                                     </td>
                                     <td data-label="Status"><span class="badge <?= $st[1] ?>"><?= $st[0] ?></span></td>
@@ -365,15 +390,17 @@ td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
                     <table class="rt">
                         <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>Location</th></tr></thead>
                         <tbody>
-                            <?php foreach ($rows as $r): $l = $labels[$r['action']] ?? [$r['action'], 'info']; ?>
+                            <?php foreach ($rows as $r): $l = $labels[$r['action']] ?? [$r['action'], 'info']; 
+                                // LIVE LOCATION LOOKUP
+                                $liveLoc = resolve_live_location($r['ip_address'], $r['location']);
+                            ?>
                                 <tr>
                                     <td data-label="Time"><?= when($r['created_at']) ?></td>
                                     <td data-label="User"><b><?= e($r['username'] ?? '—') ?></b></td>
                                     <td data-label="Action"><span class="badge b-<?= $l[1] ?>"><?= e($l[0]) ?></span></td>
                                     <td data-label="Details"><?= e($r['details']) ?></td>
                                     <td data-label="Location">
-                                        <!-- Read from database instead of live API -->
-                                        <span style="font-weight: 600;"><?= e($r['location'] ?? 'Unknown') ?></span><br>
+                                        <span style="font-weight: 600;"><?= e($liveLoc) ?></span><br>
                                         <small class="muted">IP: <?= e($r['ip_address']) ?></small>
                                     </td>
                                 </tr>

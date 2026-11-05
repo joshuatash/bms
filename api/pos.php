@@ -21,6 +21,35 @@ ksort($want);   // same lock order every time avoids deadlocks between two cashi
 $pdo = db();
 try {
     $pdo->beginTransaction();
+    
+    // Check if an identical sale has already happened TODAY
+    // We build a dynamic query to check exactly these items and quantities
+    $signatureSql = "SELECT s.sale_id, s.receipt_no, u.full_name, s.sale_date 
+                     FROM sales_record s
+                     JOIN users u ON u.user_id = s.user_id
+                     WHERE DATE(s.sale_date) = CURDATE() 
+                     AND (SELECT COUNT(*) FROM sales_record_items i WHERE i.sale_id = s.sale_id) = ?";
+    
+    $signatureParams = [count($want)];
+    
+    foreach ($want as $pid => $qty) {
+        $signatureSql .= " AND EXISTS (SELECT 1 FROM sales_record_items i WHERE i.sale_id = s.sale_id AND i.product_id = ? AND i.qty_bottles = ?)";
+        $signatureParams[] = $pid;
+        $signatureParams[] = $qty;
+    }
+    
+    $checkStmt = $pdo->prepare($signatureSql . " LIMIT 1");
+    $checkStmt->execute($signatureParams);
+    $existing = $checkStmt->fetch();
+    
+    if ($existing) {
+        $time = date('g:i A', strtotime($existing['sale_date']));
+        $pdo->rollBack();
+        json_out([
+            'error' => "Possible double entry! An identical cart was already recorded today by {$existing['full_name']} at $time (Receipt: {$existing['receipt_no']}). If this is a separate order, clear the cart and ring it up with a different combination, or proceed knowing the sale was already logged."
+        ], 409);
+    }
+
     $sel = $pdo->prepare("SELECT product_id, product_name, price_per_bottle, COALESCE(buying_price, 0) AS buying_price, bottles_available
                           FROM products WHERE product_id = ? AND is_active = 1 FOR UPDATE");
     $lines = []; $total = 0.0; $totalProfit = 0.0;

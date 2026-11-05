@@ -40,8 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'reset_sys
                 if ($scope === 'all' || $scope === 'rooms') {
                     $pdo->exec("TRUNCATE TABLE room_payments");
                     $pdo->exec("TRUNCATE TABLE room_bookings");
-                    $pdo->exec("TRUNCATE TABLE rooms");
-                    $deletedSummary[] = "All Rooms & Bookings";
+                    $pdo->exec("UPDATE rooms SET status = 'available', status_note = NULL");
+                    $deletedSummary[] = "All Bookings (Rooms kept & reset to available)";
                 }
                 if ($scope === 'all' || $scope === 'expenses') {
                     $pdo->exec("TRUNCATE TABLE expenses");
@@ -65,8 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'reset_sys
 
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
                 $summaryText = implode(', ', $deletedSummary);
-                log_activity('system_reset', "Reset system category [{$scope}]: removed {$summaryText}. User accounts kept.");
-                $_SESSION['flash_settings'] = "Success! Cleared: {$summaryText}. User accounts were safely kept.";
+                log_activity('system_reset', "Reset system category [{$scope}]: removed {$summaryText}. User accounts & rooms kept.");
+                $_SESSION['flash_settings'] = "Success! Cleared: {$summaryText}. User accounts and rooms were safely kept.";
                 header('Location: settings.php');
                 exit;
             } catch (PDOException $ex) {
@@ -156,11 +156,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'reset_sys
             <span class="dz-icon" aria-hidden="true">!</span>
             <div>
                 <h2>Danger Zone: Reset System</h2>
-                <p>Permanently delete records like sales, stock entries, rooms, or clear everything for a fresh start. <b>User accounts and products are always kept safe.</b></p>
+                <p>Permanently delete records like sales, stock entries, bookings, or clear everything for a fresh start. <b>User accounts, products, and physical rooms are always kept safe.</b></p>
             </div>
         </div>
         <ul class="chips">
-            <li>Sales</li><li>Stock entries</li><li>Rooms</li><li>Bookings</li><li>Expenses</li><li>Activity logs</li><li>PA System</li><li>Ground Hire</li><li class="safe">User accounts are kept</li><li class="safe">Products are kept</li>
+            <li>Sales</li><li>Stock entries</li><li>Bookings & Payments</li><li>Expenses</li><li>Activity logs</li><li>PA System</li><li>Ground Hire</li><li class="safe">User accounts kept</li><li class="safe">Products kept</li><li class="safe">Rooms kept</li>
         </ul>
         <button class="btn danger" id="resetBtn" type="button">Reset System Data</button>
     </section>
@@ -169,16 +169,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'reset_sys
 <div class="modal" id="resetModal">
     <form class="box" method="post" id="resetForm">
         <h3>Reset System Data</h3>
-        <div class="warnbox"><b>This cannot be undone.</b> Choose which category to reset below. Your user login accounts and product catalog will remain intact.</div>
+        <div class="warnbox"><b>This cannot be undone.</b> Choose which category to reset below. Your user login accounts, product catalog, and physical room list will remain intact.</div>
         <input type="hidden" name="do" value="reset_system">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="r">
             <label>What to clear</label>
             <select name="scope">
-                <option value="all" selected>Everything (All sales, stock entries, rooms, expenses, logs, PA, Ground)</option>
+                <option value="all" selected>Everything (All sales, stock entries, bookings, expenses, logs, PA, Ground)</option>
                 <option value="sales">Sales only</option>
                 <option value="inventory">Inventory only (Stock entries — products kept)</option>
-                <option value="rooms">Rooms & Bookings only</option>
+                <option value="rooms">Bookings & Payments only (Rooms kept)</option>
                 <option value="expenses">Expenses only</option>
                 <option value="logs">Activity logs only</option>
                 <option value="pa_system">PA System Hires only</option>

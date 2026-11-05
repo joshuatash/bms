@@ -129,11 +129,18 @@
         <div class="empty" id="noRoom">Tap an available room to start a booking.</div>
         <div id="formBody" style="display:none">
             <div class="picked" id="picked"></div>
-            <label>Guest Name</label><input id="fGuest" maxlength="100" autocomplete="off">
+            
+            <label>Guest Name</label>
+            <input id="fGuest" maxlength="100" autocomplete="off">
+            
             <div class="two">
-                <div><label>Phone</label><input id="fPhone" type="tel" maxlength="25" autocomplete="off"></div>
+                <div>
+                    <label>Phone (Required)</label>
+                    <input id="fPhone" type="tel" maxlength="25" autocomplete="off" required>
+                </div>
                 <div><label>ID / Passport No.</label><input id="fIdNo" maxlength="40" autocomplete="off"></div>
             </div>
+            
             <label>Booking Type</label>
             <div class="types">
                 <button type="button" class="type on" data-type="short"><b>Short</b><span id="tShort"></span></button>
@@ -239,7 +246,6 @@ function render() {
     $('occ').innerHTML = oc.length ? oc.map(x => {
         const overdue = localDate(x.due_out) < localDate(todayStr()) ? '<span class="tag">Overdue</span>' : '';
         const bal = +x.balance;
-        // Pass the entire JSON string object safely into printReceipt
         const safeJson = encodeURIComponent(JSON.stringify(x));
         return `<tr>
             <td data-label="Room"><b>${esc(x.room_number)}</b><span class="kind">${x.booking_type === 'short' ? 'Short' : 'Long'}</span></td>
@@ -315,6 +321,15 @@ $('q').addEventListener('input', debounce(render));
 
 $('bookBtn').onclick = async () => {
     if (!sel) return;
+    
+    // Client-side validation for Phone
+    if (!$('fPhone').value.trim()) {
+        $('hint').textContent = 'Phone number is required.';
+        $('hint').className = 'hint bad';
+        $('fPhone').focus();
+        return;
+    }
+
     $('bookBtn').disabled = true; $('bookBtn').textContent = 'Saving...';
     $('hint').textContent = ''; $('hint').className = 'hint';
     try {
@@ -329,7 +344,6 @@ $('bookBtn').onclick = async () => {
             $('dNo').textContent = r.booking_no; $('dTotal').textContent = CUR + ' ' + fmt(r.total);
             $('dBal').textContent = r.balance > 0 ? 'Balance still owed: ' + CUR + ' ' + fmt(r.balance) : 'Fully paid';
             
-            // Save data for the receipt button after fresh booking
             lastBookingData = {
                 booking_no: r.booking_no,
                 guest_name: $('fGuest').value,
@@ -386,13 +400,11 @@ $('mnt').addEventListener('click', async e => {
     load();
 });
 
-// Helper parser for table buttons
 function printReceiptFromData(encodedJson) {
     const data = JSON.parse(decodeURIComponent(encodedJson));
     printReceipt(data);
 }
 
-// Universal Receipt Generator
 function printReceipt(data) {
     const dateStr = new Date().toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true});
     const typeStr = data.booking_type === 'short' ? 'Short Stay' : `Long Stay (${data.nights} night${data.nights > 1 ? 's' : ''})`;

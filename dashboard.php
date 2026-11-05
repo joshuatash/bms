@@ -10,44 +10,58 @@ $stmtName->execute([$adminId]);
 $adminName = $stmtName->fetchColumn() ?: current_user()['name'];
 // Helper function
 $money = fn($n) => number_format((float)$n);
+
+// --- TIME SHIFT LOGIC (Resets at 7:00 AM) ---
+// We subtract 7 hours from the current server time.
+// Any transaction after midnight but before 7am is treated as yesterday.
+$shift = "DATE_SUB(NOW(), INTERVAL 7 HOUR)";
+$shiftToday = "DATE(DATE_SUB(NOW(), INTERVAL 7 HOUR))";
+$shiftMonthStart = "DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 7 HOUR), '%Y-%m-01')";
+
 // Stock Stats
 $p = $pdo->query("SELECT COUNT(*) total, COALESCE(SUM(bottles_available > 0 AND bottles_available <= low_stock_threshold),0) low, COALESCE(SUM(bottles_available = 0),0) out_of_stock FROM products WHERE is_active = 1")->fetch();
 // Overall Stock Balance — total retail value of available stock
 $stockBalance = (float)$pdo->query("SELECT COALESCE(SUM(bottles_available * price_per_bottle), 0) FROM products WHERE is_active = 1 AND bottles_available > 0")->fetchColumn();
 // Expected Profit — total potential profit from available stock (retail value − cost value)
 $expectedProfit = (float)$pdo->query("SELECT COALESCE(SUM(bottles_available * (price_per_bottle - buying_price)), 0) FROM products WHERE is_active = 1 AND bottles_available > 0")->fetchColumn();
-// Sales Stats
-$salesToday = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE DATE(sale_date) = CURDATE()")->fetchColumn();
-$salesMonth = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE sale_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
-// Profit Stats (Computed safely using product buying prices directly)
-$profitToday = (float)$pdo->query("SELECT COALESCE(SUM(i.line_total - (COALESCE(p.buying_price, 0) * i.qty_bottles)), 0) FROM sales_record_items i JOIN sales_record s ON s.sale_id = i.sale_id LEFT JOIN products p ON p.product_id = i.product_id WHERE DATE(s.sale_date) = CURDATE()")->fetchColumn();
-$profitMonth = (float)$pdo->query("SELECT COALESCE(SUM(i.line_total - (COALESCE(p.buying_price, 0) * i.qty_bottles)), 0) FROM sales_record_items i JOIN sales_record s ON s.sale_id = i.sale_id LEFT JOIN products p ON p.product_id = i.product_id WHERE s.sale_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
+
+// Sales Stats (Shifted)
+$salesToday = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE DATE(sale_date) = $shiftToday")->fetchColumn();
+$salesMonth = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE sale_date >= $shiftMonthStart")->fetchColumn();
+
+// Profit Stats (Shifted)
+$profitToday = (float)$pdo->query("SELECT COALESCE(SUM(i.line_total - (COALESCE(p.buying_price, 0) * i.qty_bottles)), 0) FROM sales_record_items i JOIN sales_record s ON s.sale_id = i.sale_id LEFT JOIN products p ON p.product_id = i.product_id WHERE DATE(s.sale_date) = $shiftToday")->fetchColumn();
+$profitMonth = (float)$pdo->query("SELECT COALESCE(SUM(i.line_total - (COALESCE(p.buying_price, 0) * i.qty_bottles)), 0) FROM sales_record_items i JOIN sales_record s ON s.sale_id = i.sale_id LEFT JOIN products p ON p.product_id = i.product_id WHERE s.sale_date >= $shiftMonthStart")->fetchColumn();
+
 $users = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
-// Expenses Stats
-$expensesToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE expense_date = CURDATE()")->fetchColumn();
-$expensesMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE expense_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
+
+// Expenses Stats (Shifted)
+$expensesToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE DATE(expense_date) = $shiftToday")->fetchColumn();
+$expensesMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE expense_date >= $shiftMonthStart")->fetchColumn();
 
 // Net Profit Calculation (Gross Profit - Expenses)
 $netProfitToday = $profitToday - $expensesToday;
 $netProfitMonth = $profitMonth - $expensesMonth;
 
-// Rooms Revenue Stats
+// Rooms Revenue Stats (Shifted)
 $roomsToday = $roomsMonth = 0.0; 
 try {
-    $roomsToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM room_payments WHERE paid_at >= CURDATE()")->fetchColumn();
-    $roomsMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM room_payments WHERE paid_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
+    $roomsToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM room_payments WHERE DATE(paid_at) = $shiftToday")->fetchColumn();
+    $roomsMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM room_payments WHERE paid_at >= $shiftMonthStart")->fetchColumn();
 } catch (PDOException $e) {}
-// PA System Stats
+
+// PA System Stats (Shifted)
 $paToday = $paMonth = 0.0;
 try {
-    $paToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM pa_collections WHERE DATE(created_at) = CURDATE()")->fetchColumn();
-    $paMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM pa_collections WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
+    $paToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM pa_collections WHERE DATE(created_at) = $shiftToday")->fetchColumn();
+    $paMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM pa_collections WHERE created_at >= $shiftMonthStart")->fetchColumn();
 } catch (PDOException $e) {}
-// Ground Hire Stats
+
+// Ground Hire Stats (Shifted)
 $ghToday = $ghMonth = 0.0;
 try {
-    $ghToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM ground_hire WHERE DATE(created_at) = CURDATE()")->fetchColumn();
-    $ghMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM ground_hire WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
+    $ghToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM ground_hire WHERE DATE(created_at) = $shiftToday")->fetchColumn();
+    $ghMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM ground_hire WHERE created_at >= $shiftMonthStart")->fetchColumn();
 } catch (PDOException $e) {}
 ?>
 <!DOCTYPE html>
@@ -72,7 +86,34 @@ try {
         body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0b1220; color: var(--text); }
         main { max-width: 1100px; margin: 26px auto; padding: 0 18px; }
         h2 { margin: 0 0 4px; color: var(--text); }
-        .sub { color: var(--text-dim); margin: 0 0 20px; }
+        
+        /* NEW: Outstanding Subtitle Style */
+        .sub-outstanding {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0 24px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, rgba(245,158,11,.15) 0%, rgba(245,158,11,.05) 100%);
+            border: 1px solid rgba(245,158,11,.3);
+            border-left: 4px solid var(--amber);
+            border-radius: 8px;
+            color: var(--amber);
+            font-size: .92rem;
+            font-weight: 700;
+            letter-spacing: .3px;
+            text-shadow: 0 0 12px rgba(245,158,11,.4);
+            box-shadow: 0 4px 12px rgba(0,0,0,.2);
+            animation: pulse-border 2s infinite alternate;
+        }
+        
+        @keyframes pulse-border {
+            0% { border-color: rgba(245,158,11,.3); box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+            100% { border-color: rgba(245,158,11,.6); box-shadow: 0 4px 15px rgba(245,158,11,.15); }
+        }
+
+        .sub-outstanding svg { width: 18px; height: 18px; flex-shrink: 0; }
+
         .group { font-size: .75rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: .8px; margin: 22px 0 10px; }
         
         .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
@@ -116,6 +157,7 @@ try {
         @media(max-width: 640px) {
             .tile.stock-balance, .tile.expected-profit { grid-column: span 1; }
             .tile.stock-balance b, .tile.expected-profit b { font-size: 1.5rem; }
+            .sub-outstanding { width: 100%; justify-content: center; }
         }
         
         .tile.link { display: block; text-decoration: none; color: inherit; cursor: pointer; transition: .15s; }
@@ -145,7 +187,16 @@ try {
 <?php include __DIR__ . '/includes/header.php'; ?>
 <main>
     <h2>Welcome, <?= e($adminName) ?></h2>
-    <p class="sub">Main dashboard</p>
+    
+    <!-- Outstanding Subtitle -->
+    <div class="sub-outstanding">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        Business Day resets daily at 7:00 AM
+    </div>
+
     <div class="group">Money &amp; Profit (<?= CURRENCY ?>) - Today</div>
     <section class="tiles">
         <a class="tile money link" href="sales_report.php?period=today">

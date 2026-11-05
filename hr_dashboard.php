@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif ($submittedAction === 'change_my_password') $activePanel = 'settings';
     elseif ($submittedAction === 'clear_logs') $activePanel = 'activity';
 }
+
 // Handle HR Password Change
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'change_my_password') {
     $current = (string)($_POST['current_password'] ?? '');
@@ -42,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'change_my
         }
     }
 }
+
 // Handle Clear Activity Logs
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'clear_logs') {
     $csrf = (string)($_POST['csrf'] ?? '');
@@ -52,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'clear_log
         $logSuccess = 'Activity logs cleared successfully.';
     }
 }
+
 // Handle Database Backup Export
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'backup_database') {
     $csrf = (string)($_POST['csrf'] ?? '');
@@ -97,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'backup_da
         $backupError = 'Your session expired. Reload the page and try again.';
     }
 }
+
 // Fetch recent activity logs
 $pdo = db();
 $logs = $pdo->query("
@@ -105,6 +109,7 @@ $logs = $pdo->query("
     ORDER BY created_at DESC
     LIMIT 50
 ")->fetchAll(PDO::FETCH_ASSOC);
+
 // NEW: Fetch the latest 10 failed logins specifically for the reasons list
 $stmtFailed = $pdo->query("
     SELECT username, action, details, ip_address, created_at
@@ -114,6 +119,7 @@ $stmtFailed = $pdo->query("
     LIMIT 10
 ");
 $failedLoginsList = $stmtFailed->fetchAll(PDO::FETCH_ASSOC);
+
 // Helper function to resolve IP to location if it's not in the logs
 if (!function_exists('resolve_ip_location')) {
     function resolve_ip_location($ip) {
@@ -132,6 +138,7 @@ if (!function_exists('resolve_ip_location')) {
         return 'Unknown Location';
     }
 }
+
 // Counts for the top stat cards (based on the latest 50)
 $failedLogins = 0;
 $totalLogins = 0;
@@ -763,6 +770,24 @@ async function loadUsers() {
         $('tbody').innerHTML = `<tr><td colspan="4" style="color:#f87171; text-align:center;">Failed to load users: ${err.message}</td></tr>`;
     }
 }
+
+// NEW: JS IP Resolver if the database location fails
+async function getLiveLocation(ip, storedLoc) {
+    if (!ip || ip === '::1' || ip === '127.0.0.1') return 'Local Network';
+    if (storedLoc && storedLoc !== 'Unknown' && storedLoc !== 'Local Network' && storedLoc !== 'Kampala Central') {
+        return storedLoc;
+    }
+    try {
+        const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city`);
+        const data = await res.json();
+        if (data.status === 'success') {
+            const parts = [data.city, data.regionName, data.country].filter(Boolean);
+            if (parts.length) return parts.join(', ');
+        }
+    } catch (e) {}
+    return storedLoc || 'Unknown Location';
+}
+
 async function loadSessions() {
     $('sessionsBody').innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-mute); padding:20px;">Fetching live locations... (may take 1-2s)</td></tr>`;
     $('sessionCards').innerHTML = `<p style="color:var(--text-mute); text-align:center; padding:16px 0;">Fetching live locations...</p>`;
@@ -775,8 +800,13 @@ async function loadSessions() {
             return;
         }
         $('statOnline').textContent = rows.length;
-        $('sessionsBody').innerHTML = rows.map(s => {
+        
+        // Resolve all locations concurrently
+        const locations = await Promise.all(rows.map(s => getLiveLocation(s.ip_address, s.location)));
+
+        $('sessionsBody').innerHTML = rows.map((s, i) => {
             const device = parseDevice(s.user_agent);
+            const loc = locations[i];
             return `
                 <tr>
                     <td>
@@ -787,7 +817,7 @@ async function loadSessions() {
                     </td>
                     <td>
                         <code style="background:var(--surface-3); color:var(--text); padding:2px 6px; border-radius:4px; font-size:0.8rem;">${esc(s.ip_address || 'Unknown')}</code><br>
-                        <small style="color:var(--text-dim);">📍 ${esc(s.location)}</small>
+                        <small style="color:var(--text-dim);">📍 ${esc(loc)}</small>
                     </td>
                     <td style="font-size:.85rem;">${esc(device)}</td>
                     <td>${dateFmt(s.login_time)}</td>
@@ -796,10 +826,12 @@ async function loadSessions() {
                 </tr>
             `;
         }).join('');
+        
         $('sessionCards').innerHTML = rows.length === 0
             ? `<p style="color:var(--text-mute); text-align:center; padding:16px 0;">No active sessions.</p>`
-            : rows.map(s => {
+            : rows.map((s, i) => {
                 const device = parseDevice(s.user_agent);
+                const loc = locations[i];
                 return `
                 <div class="session-card">
                     <div class="session-card-header">
@@ -813,7 +845,7 @@ async function loadSessions() {
                         <span class="session-card-label">IP</span>
                         <span class="session-card-value"><code style="background:var(--surface-3); color:var(--text); padding:2px 5px; border-radius:4px; font-size:.8rem;">${esc(s.ip_address || 'Unknown')}</code></span>
                         <span class="session-card-label">Location</span>
-                        <span class="session-card-value">📍 ${esc(s.location)}</span>
+                        <span class="session-card-value">📍 ${esc(loc)}</span>
                         <span class="session-card-label">Device</span>
                         <span class="session-card-value">${esc(device)}</span>
                         <span class="session-card-label">Login</span>

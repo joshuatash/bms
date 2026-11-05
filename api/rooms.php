@@ -90,7 +90,15 @@ try {
 
             if ($rid < 1) json_out(['error' => 'Pick a room first.'], 422);
             if (mb_strlen($guest) < 2 || mb_strlen($guest) > 100) json_out(['error' => 'Enter the guest name.'], 422);
-            if (!preg_match('/^[0-9+() \-]{0,25}$/', $phone)) json_out(['error' => 'Phone number has invalid characters.'], 422);
+            
+            // NEW: Phone number is now required
+            if ($phone === '') {
+                json_out(['error' => 'Phone number is required.'], 422);
+            }
+            if (!preg_match('/^[0-9+() \-]{7,25}$/', $phone)) {
+                json_out(['error' => 'Phone number has invalid characters or is too short.'], 422);
+            }
+            
             if (mb_strlen($idno) > 40) json_out(['error' => 'ID / passport number is too long.'], 422);
             if ($nights < 1 || $nights > 365) json_out(['error' => 'Nights must be between 1 and 365.'], 422);
             if ($guests < 1) json_out(['error' => 'Number of guests must be at least 1.'], 422);
@@ -111,7 +119,7 @@ try {
             if ($paid > $total) $fail('Amount paid cannot be more than the total (' . number_format($total) . ').');
 
             $pdo->prepare("INSERT INTO room_bookings (booking_no, room_id, guest_name, guest_phone, guest_id_no, guests, booking_type, nights, price_per_night, total_amount, booked_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-                ->execute(['TMP', $rid, $guest, $phone ?: null, $idno ?: null, $guests, $type, $nights, $rate, $total, $user['user_id']]);
+                ->execute(['TMP', $rid, $guest, $phone, $idno ?: null, $guests, $type, $nights, $rate, $total, $user['user_id']]);
             $bid = (int)$pdo->lastInsertId();
             $no = 'B' . str_pad((string)$bid, 6, '0', STR_PAD_LEFT);
             $pdo->prepare("UPDATE room_bookings SET booking_no = ? WHERE booking_id = ?")->execute([$no, $bid]);

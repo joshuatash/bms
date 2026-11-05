@@ -2,9 +2,22 @@
 if (!in_array(current_user()['role'], ['admin', 'manager'], true)) { header('Location: pos.php'); exit; } $active = 'dashboard'; $pdo = db(); 
 $period = $_GET['period'] ?? 'today';
 $isToday = $period === 'today';
-$where = $isToday ? "DATE(p.paid_at) = CURDATE()" : "p.paid_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')";
-$title = $isToday ? "Rooms Collection Today" : "Rooms Collection This Month";
-$label = $isToday ? date('d M Y') : date('F Y');
+
+// --- TIME SHIFT LOGIC (Resets at 7:00 AM) ---
+$shiftToday = "DATE(DATE_SUB(NOW(), INTERVAL 7 HOUR))";
+$shiftMonthStart = "DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 7 HOUR), '%Y-%m-01')";
+
+if ($isToday) {
+    $where = "DATE(p.paid_at) = $shiftToday";
+    $todayStr = $pdo->query("SELECT $shiftToday")->fetchColumn();
+    $title = "Rooms Collection Today";
+    $label = date('d M Y', strtotime($todayStr));
+} else {
+    $where = "p.paid_at >= $shiftMonthStart";
+    $monthStr = $pdo->query("SELECT $shiftMonthStart")->fetchColumn();
+    $title = "Rooms Collection This Month";
+    $label = date('F Y', strtotime($monthStr));
+}
 
 $sql = "SELECT p.payment_id, p.amount, p.method, p.paid_at, b.booking_no, b.guest_name, b.booking_type, r.room_number, u.full_name AS received_by_name FROM room_payments p JOIN room_bookings b ON b.booking_id = p.booking_id JOIN rooms r ON r.room_id = b.room_id JOIN users u ON u.user_id = p.received_by WHERE $where ORDER BY p.paid_at DESC";
 $rows = $pdo->query($sql)->fetchAll();

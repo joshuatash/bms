@@ -5,17 +5,28 @@ if (!in_array(current_user()['role'], ['admin', 'manager'], true)) { header('Loc
 $active = 'dashboard';
 $pdo = db();
 $period = ($_GET['period'] ?? 'today') === 'month' ? 'month' : 'today';   // whitelisted, never used raw
-$todayStr = $pdo->query("SELECT CURDATE()")->fetchColumn();
 log_activity('view_sales_report', $period === 'today' ? 'Sales today' : 'Sales this month');
+
+// --- TIME SHIFT LOGIC (Resets at 7:00 AM) ---
+$shiftToday = "DATE(DATE_SUB(NOW(), INTERVAL 7 HOUR))";
+$shiftMonthStart = "DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 7 HOUR), '%Y-%m-01')";
+$shiftTomorrow = "DATE_ADD(DATE(DATE_SUB(NOW(), INTERVAL 7 HOUR)), INTERVAL 1 DAY)";
+
 if ($period === 'today') {
-    $where  = "s.sale_date >= CURDATE() AND s.sale_date < CURDATE() + INTERVAL 1 DAY";
-    $expenseWhere = "expense_date >= CURDATE() AND expense_date < CURDATE() + INTERVAL 1 DAY";
+    // If current time is before 7 AM, the "shifted" date is yesterday.
+    $where  = "s.sale_date >= $shiftToday AND s.sale_date < $shiftTomorrow";
+    $expenseWhere = "expense_date >= $shiftToday AND expense_date < $shiftTomorrow";
+    
+    // Format label to display the shifted date
+    $todayStr = $pdo->query("SELECT $shiftToday")->fetchColumn();
     $title  = 'Sales Report & Net Profit (Today)';
     $label  = date('l, d M Y', strtotime($todayStr));
     $timeFmt = 'h:i A'; // 12-hour format with AM/PM
 } else {
-    $where  = "s.sale_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND s.sale_date < DATE_FORMAT(CURDATE(), '%Y-%m-01') + INTERVAL 1 MONTH";
-    $expenseWhere = "expense_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND expense_date < DATE_FORMAT(CURDATE(), '%Y-%m-01') + INTERVAL 1 MONTH";
+    $where  = "s.sale_date >= $shiftMonthStart AND s.sale_date < DATE_ADD($shiftMonthStart, INTERVAL 1 MONTH)";
+    $expenseWhere = "expense_date >= $shiftMonthStart AND expense_date < DATE_ADD($shiftMonthStart, INTERVAL 1 MONTH)";
+    
+    $todayStr = $pdo->query("SELECT $shiftMonthStart")->fetchColumn();
     $title  = 'Sales Report & Net Profit (This Month)';
     $label  = date('F Y', strtotime($todayStr));
     $timeFmt = 'd M, h:i A'; // 12-hour format with AM/PM

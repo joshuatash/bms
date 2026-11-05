@@ -116,14 +116,77 @@
         .hint{font-size:.85rem;margin-top:12px;min-height:1.2em;color:var(--text-dim); text-align:center; font-weight:600}
         .hint.bad{color:#f87171}
         
-        /* Modals */
-        .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;place-items:center;z-index:50}
-        .modal.open{display:grid}
-        .modal .box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px;width:min(400px,94vw);text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.6); color:var(--text)}
-        .modal h3{margin:0 0 8px;color:#4ade80; font-size:1.4rem}
-        .modal .big{font-size:2.2rem;font-weight:900;margin:16px 0; color:var(--text)}
-        .modal .row{display:flex;gap:12px;margin-top:24px}
-        .modal .btn{padding:14px}
+        /* Held Bills Styles */
+        .held-section{margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border);}
+        .held-section h3{font-size:.85rem; color:var(--amber); text-transform:uppercase; margin:0 0 10px; letter-spacing:.5px;}
+        .held-list{display:flex; flex-direction:column; gap:8px; max-height:150px; overflow-y:auto; margin-bottom:10px;}
+        .held-item{display:flex; justify-content:space-between; align-items:center; background:var(--surface-2); border:1px solid var(--border); border-radius:8px; padding:10px; transition:.15s;}
+        .held-item:hover{border-color:var(--amber); background:var(--surface-3);}
+        .held-info { flex: 1; cursor: pointer; }
+        .held-item .h-name{font-weight:700; font-size:.9rem; color:var(--text);}
+        .held-item .h-total{font-size:.8rem; color:#4ade80; font-weight:700;}
+        .held-item .h-time{font-size:.7rem; color:var(--text-mute); display:block;}
+        .held-print { background: var(--surface-3); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; cursor: pointer; margin-left: 8px; display: grid; place-items: center; transition: .15s; }
+        .held-print:hover { background: var(--amber); color: #0b1220; border-color: var(--amber); }
+        .held-empty{font-size:.8rem; color:var(--text-mute); text-align:center;}
+
+        /* MODALS - Upgraded Modern Design */
+        .modal{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);display:none;place-items:center;z-index:50;opacity:0;transition:opacity .2s ease;}
+        .modal.open{display:grid;opacity:1;}
+        
+        .modal .box{
+            background:var(--surface-2);
+            border:1px solid var(--border);
+            border-radius:24px;
+            padding:40px 30px;
+            width:min(420px,94vw);
+            text-align:center;
+            box-shadow: 0 30px 60px -12px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05);
+            color:var(--text);
+            transform:translateY(20px) scale(.95);
+            transition:transform .3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .modal.open .box{transform:translateY(0) scale(1);}
+        
+        .modal .success-icon {
+            width:72px; height:72px;
+            background:rgba(22,163,74,.15);
+            color:#4ade80;
+            border-radius:50%;
+            display:grid; place-items:center;
+            margin:0 auto 20px;
+            border:2px solid rgba(22,163,74,.3);
+        }
+        .modal .success-icon svg { width:36px; height:36px; }
+        
+        .modal h3{margin:0 0 6px;color:var(--text); font-size:1.4rem; font-weight:800;}
+        .modal .subtitle{font-size:.9rem; color:var(--text-dim); margin-bottom:24px;}
+        
+        .modal .receipt-box {
+            background:var(--surface-3);
+            border:1px dashed var(--border);
+            border-radius:12px;
+            padding:16px;
+            margin-bottom:24px;
+            text-align:left;
+        }
+        .modal .receipt-row { display:flex; justify-content:space-between; margin-bottom:8px; font-size:.9rem; color:var(--text-dim); }
+        .modal .receipt-row:last-child { margin-bottom:0; padding-top:8px; border-top:1px solid var(--border); margin-top:8px;}
+        .modal .receipt-row strong { color:var(--text); }
+        .modal .big-total { font-size:1.6rem; font-weight:900; color:#4ade80; }
+        
+        .modal .row{display:flex;flex-direction:column;gap:10px;}
+        .modal .btn{padding:14px;}
+        .modal .btn.ghost { background:var(--surface); border:1px solid var(--border); color:var(--text); }
+        .modal .btn.ghost:hover { background:var(--surface-3); }
+
+        /* Hold Bill Modal Specific */
+        .modal .box.hold-box { padding: 30px; text-align: left; }
+        .modal .box.hold-box h3 { text-align: center; }
+        .modal .box.hold-box p { color: var(--text-dim); font-size: .9rem; text-align: center; margin-bottom: 20px; }
+        .modal .box.hold-box input { width: 100%; padding: 14px; border: 2px solid var(--amber); border-radius: 10px; background: var(--surface-3); color: var(--text); font-size: 1.1rem; margin-bottom: 20px; font-weight: bold; text-align: center; }
+        .modal .box.hold-box input:focus { outline: none; box-shadow: 0 0 0 4px rgba(245,158,11,.2); }
+        .modal .box.hold-box .actions { display: flex; gap: 10px; }
         
         /* Mobile Cart Bar */
         .cartbar{display:none}
@@ -233,7 +296,17 @@
         <div class="total"><span>Total To Pay</span><b id="total"><?= CURRENCY ?> 0</b></div>
         
         <button class="btn primary" id="pay" disabled>Complete Payment</button>
+        <button class="btn ghost" id="holdBtn" style="color:var(--amber); border:1px solid var(--amber); margin-top:8px;">Hold Bill (Tab)</button>
         <button class="btn ghost" id="clear">Clear Cart</button>
+        
+        <!-- HELD BILLS SECTION -->
+        <div class="held-section">
+            <h3>Held Bills</h3>
+            <div class="held-list" id="heldList">
+                <div class="held-empty">No bills on hold</div>
+            </div>
+        </div>
+
         <div class="hint" id="hint"></div>
     </aside>
 </div>
@@ -254,15 +327,49 @@
 </button>
 
 <!-- SUCCESS MODAL -->
-<div class="modal" id="done"><div class="box">
-    <h3>Payment Complete</h3>
-    <div>Receipt: <b id="dRec"></b></div>
-    <div class="big" id="dTotal"></div>
-    <div class="row">
-        <button class="btn ghost" id="dPrint" style="margin:0">Print Receipt</button>
-        <button class="btn primary" id="dNew">New Sale</button>
+<div class="modal" id="done">
+    <div class="box">
+        <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        </div>
+        <h3>Payment Received</h3>
+        <p class="subtitle">The sale has been recorded successfully.</p>
+        
+        <div class="receipt-box">
+            <div class="receipt-row">
+                <span>Receipt No</span>
+                <strong id="dRec">R000000</strong>
+            </div>
+            <div class="receipt-row">
+                <span>Total Amount</span>
+                <span class="big-total" id="dTotal">0</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <button class="btn ghost" id="dPrint">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:text-bottom; margin-right:6px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Print Invoice for Customer
+            </button>
+            <button class="btn primary" id="dNew">Start New Sale</button>
+        </div>
     </div>
-</div></div>
+</div>
+
+<!-- HOLD BILL MODAL -->
+<div class="modal" id="holdModal">
+    <div class="box hold-box">
+        <h3>Hold Current Bill</h3>
+        <p>Enter a name to identify this tab (e.g., "Table 4", "John").</p>
+        <input type="text" id="holdName" placeholder="e.g. Table 4" autocomplete="off">
+        <div class="actions">
+            <button class="btn ghost" id="holdCancel">Cancel</button>
+            <button class="btn primary" id="holdConfirm">Save Bill</button>
+        </div>
+    </div>
+</div>
 
 <script>
 const CSRF = <?= json_encode(csrf_token()) ?>, CUR = <?= json_encode(CURRENCY) ?>;
@@ -275,7 +382,9 @@ const debounce = (fn, ms=250) => { let t; return (...a) => { clearTimeout(t); t 
 const cart = new Map(); 
 let rows = [];
 let lastCompletedSale = null;
-let currentFilter = 'all'; // all | available | low | out
+let currentFilter = 'all';
+let heldBills = JSON.parse(localStorage.getItem('bw_held_bills') || '[]');
+let currentHeldBillName = null; 
 
 /* Back-to-top */
 const backTop = $('backTop');
@@ -361,12 +470,186 @@ function renderCart() {
     
     $('items').innerHTML = html || '<div class="empty"><svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="opacity:0.3"><path d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"></path></svg> No items yet. Tick a drink to add.</div>';
     $('total').textContent = CUR + ' ' + fmt(total);
+    
     $('pay').disabled = cart.size === 0;
+    $('holdBtn').disabled = cart.size === 0;
+    
     $('cbText').textContent = cart.size + ' item' + (cart.size === 1 ? '' : 's') + ' | ' + CUR + ' ' + fmt(total);
     $('cartBar').classList.toggle('show', cart.size > 0);
+    
+    renderHeldBills();
 }
 
-/* Filter button handling */
+/* Held Bills Logic */
+function renderHeldBills() {
+    if (heldBills.length === 0) {
+        $('heldList').innerHTML = '<div class="held-empty">No bills on hold</div>';
+        return;
+    }
+    
+    $('heldList').innerHTML = heldBills.map((bill, index) => {
+        const total = bill.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        const time = new Date(bill.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `
+            <div class="held-item">
+                <div class="held-info" onclick="resumeBill(${index})">
+                    <div class="h-name">${esc(bill.name)}</div>
+                    <span class="h-time">${time}</span>
+                    <div class="h-total">${CUR} ${fmt(total)}</div>
+                </div>
+                <button class="held-print" onclick="printHeldBill(${index})" title="Print Pro-forma Bill">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+$('holdBtn').onclick = () => {
+    if (cart.size === 0) return;
+    
+    // Open Custom Modal
+    $('holdName').value = currentHeldBillName || "Tab " + (heldBills.length + 1);
+    $('holdModal').classList.add('open');
+    setTimeout(() => $('holdName').select(), 100);
+};
+
+$('holdCancel').onclick = () => $('holdModal').classList.remove('open');
+
+$('holdConfirm').onclick = () => {
+    const billName = $('holdName').value.trim();
+    if (!billName) {
+        alert("Please enter a name for the bill.");
+        return;
+    }
+    
+    // If we are currently editing a held bill, remove the old one first to prevent duplicates
+    if (currentHeldBillName) {
+        const oldIndex = heldBills.findIndex(b => b.name === currentHeldBillName);
+        if (oldIndex !== -1) heldBills.splice(oldIndex, 1);
+        currentHeldBillName = null;
+    }
+    
+    heldBills.push({
+        name: billName,
+        items: [...cart.values()],
+        timestamp: Date.now()
+    });
+    
+    localStorage.setItem('bw_held_bills', JSON.stringify(heldBills));
+    
+    cart.clear();
+    $('hint').textContent = '';
+    $('holdModal').classList.remove('open');
+    renderTable(); 
+    renderCart();
+    showToast('Bill held successfully.');
+};
+
+function resumeBill(index) {
+    if (cart.size > 0 && !currentHeldBillName) {
+        if (!confirm("Your current cart has items. Loading this bill will overwrite them. Continue?")) return;
+    }
+    
+    const bill = heldBills[index];
+    heldBills.splice(index, 1);
+    localStorage.setItem('bw_held_bills', JSON.stringify(heldBills));
+    
+    cart.clear();
+    bill.items.forEach(item => {
+        cart.set(String(item.id), { ...item });
+    });
+    
+    currentHeldBillName = bill.name; // Remember which bill we are editing
+    renderTable();
+    renderCart();
+    showToast(`Loaded bill: ${bill.name}`);
+}
+
+/* Clear logic puts the bill back if it was held */
+$('clear').onclick = () => { 
+    if (currentHeldBillName) {
+        // Automatically save it back to held bills
+        heldBills.push({
+            name: currentHeldBillName,
+            items: [...cart.values()],
+            timestamp: Date.now()
+        });
+        localStorage.setItem('bw_held_bills', JSON.stringify(heldBills));
+        showToast(`Bill "${currentHeldBillName}" returned to Held Bills.`);
+        currentHeldBillName = null;
+    } else {
+        showToast('Cart cleared.');
+    }
+    
+    cart.clear(); 
+    $('hint').textContent = ''; 
+    renderTable(); 
+    renderCart(); 
+};
+
+/* Print function for Held Bills */
+function printHeldBill(index) {
+    const bill = heldBills[index];
+    const total = bill.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Bill - ${esc(bill.name)}</title>
+            <style>
+                @page { size: 80mm auto; margin: 0; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 10px; color: #0f172a; background: #fff; display: flex; justify-content: center; align-items: flex-start; }
+                .rc { width: 76mm; padding: 12px; font-size: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; }
+                .logo-container { text-align: center; margin-bottom: 8px; }
+                .logo-container img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; }
+                .rc h1 { margin: 0 0 2px; text-align: center; font-size: 15px; font-weight: 800; color: #0f172a; } 
+                .rc .sub-header { text-align: center; font-size: 10px; color: #475569; line-height: 1.4; margin-bottom: 8px; }
+                .rc .badge { text-align: center; font-weight: 700; font-size: 11px; background: #f1f5f9; padding: 4px; border-radius: 4px; margin: 6px 0; color: #334155; text-transform: uppercase; }
+                .rc .c { text-align: center; color: #64748b; margin: 2px 0; font-size: 10px; }
+                hr { border: 0; border-top: 1px dashed #cbd5e1; margin: 8px 0; }
+                table { width: 100%; border-collapse: collapse; } td { padding: 3px 0; vertical-align: top; font-size: 11px; } .r { text-align: right; }
+                .tot { display: flex; justify-content: space-between; font-weight: 700; font-size: 13px; margin-top: 6px; }
+                .footer-note { text-align: center; font-size: 10px; color: #64748b; margin-top: 10px; font-style: italic; }
+                @media print { body { padding: 0; background: #fff; display: block; } .rc { border: none; border-radius: 0; width: 72mm; padding: 0; margin: 0 auto; box-shadow: none; } }
+            </style>
+        </head>
+        <body>
+            <div class="rc">
+                <h1>BIG WALLET LOUNGE - BALA</h1>
+                <div class="sub-header">
+                    Te-Cambia B, Bala Town Council, Kole District<br>
+                    WhatsApp: +211925830541 | Tel: 0787072542<br>
+                    Email: info@bigwalletlounge.com
+                </div>
+                <div class="logo-container">
+                    <img src="logo.png" alt="Logo">
+                </div>
+                <div class="badge">INTERIM BILL</div>
+                <div class="c">Name: <b>${esc(bill.name)}</b></div>
+                <div class="c">Date: ${new Date(bill.timestamp).toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true})}</div>
+                <hr>
+                <table>
+                    ${bill.items.map(i => `
+                        <tr><td colspan="2"><b>${esc(i.name)}</b></td></tr>
+                        <tr><td>${i.qty} x ${fmt(i.price)}</td><td class="r">${fmt(i.price * i.qty)}</td></tr>
+                    `).join('')}
+                </table>
+                <hr>
+                <div class="tot"><span>TOTAL:</span><span>${CUR} ${fmt(total)}</span></div>
+                <hr>
+                <div class="footer-note">This is NOT a receipt. Please pay at the counter.</div>
+            </div>
+            <script>
+                window.onload = function() { window.print(); }
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
 document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         currentFilter = btn.dataset.filter;
@@ -404,7 +687,6 @@ $('items').addEventListener('click', e => {
     cart.delete(String(e.target.dataset.rm)); renderTable(); renderCart();
 });
 
-$('clear').onclick = () => { cart.clear(); $('hint').textContent = ''; renderTable(); renderCart(); };
 $('q').addEventListener('input', debounce(load));
 $('cbBtn').onclick = () => document.querySelector('.cart').scrollIntoView({behavior: 'smooth'});
 
@@ -416,7 +698,13 @@ $('pay').onclick = async () => {
     try {
         const res = await fetch('api/pos.php', {method:'POST', headers:{'Content-Type':'application/json','X-CSRF':CSRF}, body:JSON.stringify({items})});
         const r = await res.json();
-        if (r.error) { $('hint').textContent = r.error; $('hint').className = 'hint bad'; load(); }
+        if (r.error) { 
+            $('hint').textContent = r.error; 
+            $('hint').className = 'hint bad'; 
+            // Do not auto-load, so the user can read the error
+            $('pay').textContent = 'Complete Payment'; 
+            $('pay').disabled = false;
+        }
         else {
             lastCompletedSale = {
                 receipt_no: r.receipt_no,
@@ -427,10 +715,14 @@ $('pay').onclick = async () => {
             };
             $('dRec').textContent = r.receipt_no;
             $('dTotal').textContent = CUR + ' ' + fmt(r.total);
-            $('done').classList.add('open'); cart.clear(); load();
+            $('done').classList.add('open'); cart.clear(); currentHeldBillName = null; load();
+            $('pay').textContent = 'Complete Payment'; $('pay').disabled = true;
         }
-    } catch (err) { $('hint').textContent = 'Network problem. Nothing was charged.'; $('hint').className = 'hint bad'; }
-    $('pay').textContent = 'Complete Payment'; $('pay').disabled = cart.size === 0;
+    } catch (err) { 
+        $('hint').textContent = 'Network problem. Nothing was charged.'; 
+        $('hint').className = 'hint bad'; 
+        $('pay').textContent = 'Complete Payment'; $('pay').disabled = false;
+    }
 };
 
 $('dPrint').onclick = () => {
@@ -446,32 +738,10 @@ function printReceipt(data) {
             <title>Sales Receipt - ${esc(data.receipt_no)}</title>
             <style>
                 @page { size: 80mm auto; margin: 0; }
-                body { 
-                    font-family: 'Segoe UI', Arial, sans-serif; 
-                    margin: 0; 
-                    padding: 10px; 
-                    color: #0f172a; 
-                    background: #fff; 
-                    display: flex; 
-                    justify-content: center; 
-                    align-items: flex-start;
-                }
-                .rc { 
-                    width: 76mm; 
-                    padding: 12px; 
-                    font-size: 12px; 
-                    background: #fff; 
-                    border: 1px solid #e2e8f0;
-                    border-radius: 6px;
-                }
+                body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 10px; color: #0f172a; background: #fff; display: flex; justify-content: center; align-items: flex-start; }
+                .rc { width: 76mm; padding: 12px; font-size: 12px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; }
                 .logo-container { text-align: center; margin-bottom: 8px; }
-                .logo-container img { 
-                    width: 60px; 
-                    height: 60px; 
-                    border-radius: 50%; 
-                    object-fit: cover; 
-                    border: 2px solid #cbd5e1; 
-                }
+                .logo-container img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 2px solid #cbd5e1; }
                 .rc h1 { margin: 0 0 2px; text-align: center; font-size: 15px; font-weight: 800; color: #0f172a; } 
                 .rc .sub-header { text-align: center; font-size: 10px; color: #475569; line-height: 1.4; margin-bottom: 8px; }
                 .rc .badge { text-align: center; font-weight: 700; font-size: 11px; background: #f1f5f9; padding: 4px; border-radius: 4px; margin: 6px 0; color: #334155; text-transform: uppercase; }
@@ -480,10 +750,7 @@ function printReceipt(data) {
                 table { width: 100%; border-collapse: collapse; } td { padding: 3px 0; vertical-align: top; font-size: 11px; } .r { text-align: right; }
                 .tot { display: flex; justify-content: space-between; font-weight: 700; font-size: 13px; margin-top: 6px; }
                 .footer-note { text-align: center; font-size: 10px; color: #64748b; margin-top: 10px; font-style: italic; }
-                @media print { 
-                    body { padding: 0; background: #fff; display: block; } 
-                    .rc { border: none; border-radius: 0; width: 72mm; padding: 0; margin: 0 auto; box-shadow: none; } 
-                }
+                @media print { body { padding: 0; background: #fff; display: block; } .rc { border: none; border-radius: 0; width: 72mm; padding: 0; margin: 0 auto; box-shadow: none; } }
             </style>
         </head>
         <body>
