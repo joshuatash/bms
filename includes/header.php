@@ -5,6 +5,7 @@ $active = $active ?? '';
 $isAdminHdr = $hu['role'] === 'admin';
 $isManagerHdr = $hu['role'] === 'manager';
 $isCashierHdr = $hu['role'] === 'cashier';
+$isWaitressHdr = $hu['role'] === 'waitress'; 
 $isHrHdr = $hu['role'] === 'hr';
 $canManage = $isAdminHdr || $isManagerHdr;
 
@@ -118,9 +119,19 @@ $link = fn(string $key, string $href, string $label) =>
       <?= $link('products', 'products.php', 'Products') ?>
     <?php endif; ?>
     
-    <!-- Display Point of Sale for Admin, Cashier, and Manager roles (Hidden for HR) -->
+    <!-- Display Point of Sale for Admin, Cashier, Manager, and Waitress -->
     <?php if (!$isHrHdr): ?>
       <?= $link('pos', 'pos.php', 'Point of Sale') ?>
+    <?php endif; ?>
+
+    <!-- NEW: Waitress Links (Visible to Admin, Manager, Cashier, Waitress) -->
+    <?php if (!$isHrHdr): ?>
+      <a href="restuarant/pos.php" style="color: #60A5FA; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+          Waitress Side POS
+      </a>
+      <a href="restuarant/waitress.php" style="color: #60A5FA; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
+          Waitress Food Delivery
+      </a>
     <?php endif; ?>
 
     <?php if ($isCashierHdr): ?>
@@ -142,6 +153,13 @@ $link = fn(string $key, string $href, string $label) =>
 
     <?php if ($isAdminHdr): ?>
       <?= $link('settings', 'settings.php', 'Settings') ?>
+    <?php endif; ?>
+
+    <!-- RESTAURANT MODULE LINK (For Admin, Manager, Cashier, Waitress) -->
+    <?php if (!$isHrHdr): ?>
+      <a href="restuarant/index.php" style="color: #ec4899; font-weight: 700; display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+          Restaurant Side
+      </a>
     <?php endif; ?>
     
   </nav>
