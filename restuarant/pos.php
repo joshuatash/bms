@@ -1,5 +1,17 @@
 <?php
 // bms/restuarant/pos.php
+require_once __DIR__ . '/../config.php';
+require_login();
+
+$role = strtolower(current_user()['role'] ?? 'cashier');
+$isCashier = ($role === 'cashier');
+$isWaitress = ($role === 'waitress');
+
+// Hide the top nav links if they are a cashier or waitress
+$hideTopNav = ($isCashier || $isWaitress);
+
+// Automatically detect the current page to set the 'active' class
+$current_page = basename($_SERVER['PHP_SELF']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,6 +46,8 @@
         .desktop-nav .nav-link.active { color: var(--sidebar); background-color: var(--active-green); }
         .desktop-nav .nav-link.bar-link { color: var(--primary); border: 1px solid var(--primary); }
         .desktop-nav .nav-link.bar-link:hover { background-color: var(--primary); color: var(--sidebar); }
+        .desktop-nav .nav-link.logout-link { color: var(--danger); border: 1px solid var(--danger); }
+        .desktop-nav .nav-link.logout-link:hover { background-color: var(--danger); color: #fff; }
 
         .main-container { max-width: 1400px; margin: 0 auto; padding: 2rem 1.75rem; }
         .card-custom { background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
@@ -170,14 +184,22 @@
                 <div>Big Wallet Lounge <span>Restaurant</span></div>
             </a>
             <ul class="desktop-nav">
-                <li><a class="nav-link" href="index.php">Dashboard</a></li>
-                <li><a class="nav-link active" href="pos.php">Counter POS</a></li>
-                <li><a class="nav-link" href="kitchen.php">Kitchen KDS</a></li>
-                <li><a class="nav-link" href="inventory.php">Inventory</a></li>
-                <li><a class="nav-link" href="admin.php">Menu &amp; Prices</a></li>
-                <li><a class="nav-link" href="reports.php">Revenue</a></li>
-                <li><a class="nav-link" href="waitress.php">Waitress</a></li>
-                <li class="ms-2"><a class="nav-link bar-link" href="../dashboard.php">Bar Side &rarr;</a></li>
+                <?php if ($hideTopNav): ?>
+                    <li><a class="nav-link active" href="pos.php">Restaurant POS</a></li>
+                    <li><a class="nav-link" href="waitress.php">Restaurant Waitress</a></li>
+                    <li class="ms-2"><a class="nav-link bar-link" href="../pos.php">Bar POS</a></li>
+                    <li class="ms-2"><a class="nav-link logout-link" href="../logout.php"><i class="fa-solid fa-power-off me-1"></i> Logout</a></li>
+                <?php else: ?>
+                    <li><a class="nav-link <?= ($current_page === 'index.php') ? 'active' : '' ?>" href="index.php">Dashboard</a></li>
+                    <li><a class="nav-link <?= ($current_page === 'pos.php') ? 'active' : '' ?>" href="pos.php">Counter POS</a></li>
+                    <li><a class="nav-link <?= ($current_page === 'kitchen.php') ? 'active' : '' ?>" href="kitchen.php">Kitchen KDS</a></li>
+                    <li><a class="nav-link <?= ($current_page === 'inventory.php') ? 'active' : '' ?>" href="inventory.php">Inventory</a></li>
+                    <li><a class="nav-link <?= ($current_page === 'admin.php') ? 'active' : '' ?>" href="admin.php">Menu &amp; Prices</a></li>
+                    <li><a class="nav-link <?= ($current_page === 'reports.php') ? 'active' : '' ?>" href="reports.php">Revenue</a></li>
+                    <li><a class="nav-link <?= ($current_page === 'waitress.php') ? 'active' : '' ?>" href="waitress.php">Waitress</a></li>
+                    <li class="ms-2"><a class="nav-link bar-link" href="../dashboard.php">Bar Side &rarr;</a></li>
+                    <li class="ms-2"><a class="nav-link logout-link" href="../logout.php"><i class="fa-solid fa-power-off me-1"></i> Logout</a></li>
+                <?php endif; ?>
             </ul>
         </div>
     </header>
@@ -289,14 +311,22 @@
     </div>
 
     <nav class="mobile-bottom-nav">
-        <a href="index.php" class="mobile-nav-link"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
-        <a href="pos.php" class="mobile-nav-link active"><i class="fa-solid fa-cash-register"></i>POS</a>
-        <a href="kitchen.php" class="mobile-nav-link"><i class="fa-solid fa-fire-burner"></i>Kitchen</a>
-        <a href="inventory.php" class="mobile-nav-link"><i class="fa-solid fa-boxes-stacked"></i>Stock</a>
-        <a href="admin.php" class="mobile-nav-link"><i class="fa-solid fa-gear"></i>Menu</a>
-        <a href="reports.php" class="mobile-nav-link"><i class="fa-solid fa-coins"></i>Revenue</a>
-        <a href="waitress.php" class="mobile-nav-link"><i class="fa-solid fa-bell-concierge"></i>Waitress</a>
-        <a href="../dashboard.php" class="mobile-nav-link bar-link"><i class="fa-solid fa-arrow-left"></i>Bar Side</a>
+        <?php if ($hideTopNav): ?>
+            <a href="pos.php" class="mobile-nav-link active"><i class="fa-solid fa-cash-register"></i>Rest. POS</a>
+            <a href="waitress.php" class="mobile-nav-link"><i class="fa-solid fa-bell-concierge"></i>Waitress</a>
+            <a href="../pos.php" class="mobile-nav-link bar-link"><i class="fa-solid fa-martini-glass"></i>Bar POS</a>
+            <a href="../logout.php" class="mobile-nav-link text-danger"><i class="fa-solid fa-power-off"></i>Logout</a>
+        <?php else: ?>
+            <a href="index.php" class="mobile-nav-link <?= ($current_page === 'index.php') ? 'active' : '' ?>"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+            <a href="pos.php" class="mobile-nav-link <?= ($current_page === 'pos.php') ? 'active' : '' ?>"><i class="fa-solid fa-cash-register"></i>POS</a>
+            <a href="kitchen.php" class="mobile-nav-link <?= ($current_page === 'kitchen.php') ? 'active' : '' ?>"><i class="fa-solid fa-fire-burner"></i>Kitchen</a>
+            <a href="inventory.php" class="mobile-nav-link <?= ($current_page === 'inventory.php') ? 'active' : '' ?>"><i class="fa-solid fa-boxes-stacked"></i>Stock</a>
+            <a href="admin.php" class="mobile-nav-link <?= ($current_page === 'admin.php') ? 'active' : '' ?>"><i class="fa-solid fa-gear"></i>Menu</a>
+            <a href="reports.php" class="mobile-nav-link <?= ($current_page === 'reports.php') ? 'active' : '' ?>"><i class="fa-solid fa-coins"></i>Revenue</a>
+            <a href="waitress.php" class="mobile-nav-link <?= ($current_page === 'waitress.php') ? 'active' : '' ?>"><i class="fa-solid fa-bell-concierge"></i>Waitress</a>
+            <a href="../dashboard.php" class="mobile-nav-link bar-link"><i class="fa-solid fa-arrow-left"></i>Bar Side</a>
+            <a href="../logout.php" class="mobile-nav-link text-danger"><i class="fa-solid fa-power-off"></i>Logout</a>
+        <?php endif; ?>
     </nav>
 
     <div id="toast-stack" class="toast-stack" aria-live="polite"></div>

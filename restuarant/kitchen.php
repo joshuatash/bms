@@ -11,6 +11,9 @@ if ($isCashier) {
     header('Location: pos.php');
     exit;
 }
+
+// Automatically detect the current page to set the 'active' class
+$current_page = basename($_SERVER['PHP_SELF']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -124,13 +127,21 @@ if ($isCashier) {
                 <div>Big Wallet Lounge <span>Restaurant</span></div>
             </a>
             <ul class="desktop-nav">
-                <li><a class="nav-link" href="index.php">Dashboard</a></li>
-                <li><a class="nav-link" href="pos.php">Counter POS</a></li>
-                <li><a class="nav-link active" href="kitchen.php">Kitchen KDS</a></li>
-                <li><a class="nav-link" href="inventory.php">Inventory</a></li>
-                <li><a class="nav-link" href="admin.php">Menu &amp; Prices</a></li>
-                <li><a class="nav-link" href="reports.php">Revenue</a></li>
-                <li><a class="nav-link" href="waitress.php">Waitress</a></li>
+                <?php if (!$isCashier): ?>
+                    <li><a class="nav-link <?= ($current_page === 'index.php') ? 'active' : '' ?>" href="index.php">Dashboard</a></li>
+                <?php endif; ?>
+                
+                <li><a class="nav-link <?= ($current_page === 'pos.php') ? 'active' : '' ?>" href="pos.php">Counter POS</a></li>
+                
+                <?php if (!$isCashier): ?>
+                    <li><a class="nav-link <?= ($current_page === 'kitchen.php') ? 'active' : '' ?>" href="kitchen.php">Kitchen KDS</a></li>
+                    <li><a class="nav-link <?= ($current_page === 'inventory.php') ? 'active' : '' ?>" href="inventory.php">Inventory</a></li>
+                    <li><a class="nav-link <?= ($current_page === 'admin.php') ? 'active' : '' ?>" href="admin.php">Menu &amp; Prices</a></li>
+                    <li><a class="nav-link <?= ($current_page === 'reports.php') ? 'active' : '' ?>" href="reports.php">Revenue</a></li>
+                <?php endif; ?>
+                
+                <li><a class="nav-link <?= ($current_page === 'waitress.php') ? 'active' : '' ?>" href="waitress.php">Waitress</a></li>
+                
                 <li class="ms-2"><a class="nav-link bar-link" href="../dashboard.php">Bar Side &rarr;</a></li>
             </ul>
         </div>
@@ -159,13 +170,21 @@ if ($isCashier) {
     </main>
 
     <nav class="mobile-bottom-nav">
-        <a href="index.php" class="mobile-nav-link"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
-        <a href="pos.php" class="mobile-nav-link"><i class="fa-solid fa-cash-register"></i>POS</a>
-        <a href="kitchen.php" class="mobile-nav-link active"><i class="fa-solid fa-fire-burner"></i>Kitchen</a>
-        <a href="waitress.php" class="mobile-nav-link"><i class="fa-solid fa-bell-concierge"></i>Waitress</a>
-        <a href="inventory.php" class="mobile-nav-link"><i class="fa-solid fa-boxes-stacked"></i>Stock</a>
-        <a href="admin.php" class="mobile-nav-link"><i class="fa-solid fa-gear"></i>Menu</a>
-        <a href="reports.php" class="mobile-nav-link"><i class="fa-solid fa-coins"></i>Revenue</a>
+        <?php if (!$isCashier): ?>
+            <a href="index.php" class="mobile-nav-link <?= ($current_page === 'index.php') ? 'active' : '' ?>"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+        <?php endif; ?>
+        
+        <a href="pos.php" class="mobile-nav-link <?= ($current_page === 'pos.php') ? 'active' : '' ?>"><i class="fa-solid fa-cash-register"></i>POS</a>
+        
+        <?php if (!$isCashier): ?>
+            <a href="kitchen.php" class="mobile-nav-link <?= ($current_page === 'kitchen.php') ? 'active' : '' ?>"><i class="fa-solid fa-fire-burner"></i>Kitchen</a>
+            <a href="inventory.php" class="mobile-nav-link <?= ($current_page === 'inventory.php') ? 'active' : '' ?>"><i class="fa-solid fa-boxes-stacked"></i>Stock</a>
+            <a href="admin.php" class="mobile-nav-link <?= ($current_page === 'admin.php') ? 'active' : '' ?>"><i class="fa-solid fa-gear"></i>Menu</a>
+            <a href="reports.php" class="mobile-nav-link <?= ($current_page === 'reports.php') ? 'active' : '' ?>"><i class="fa-solid fa-coins"></i>Revenue</a>
+        <?php endif; ?>
+        
+        <a href="waitress.php" class="mobile-nav-link <?= ($current_page === 'waitress.php') ? 'active' : '' ?>"><i class="fa-solid fa-bell-concierge"></i>Waitress</a>
+        
         <a href="../dashboard.php" class="mobile-nav-link bar-link"><i class="fa-solid fa-arrow-left"></i>Bar Side</a>
     </nav>
 
