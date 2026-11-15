@@ -213,6 +213,35 @@
         .back-top:hover .tip,.back-top:focus-visible .tip{opacity:1}
         .back-top svg{width:22px;height:22px}
         
+        /* Notification Bell */
+        .notif-bell {
+            position: fixed; top: 20px; right: 20px; z-index: 9000;
+            background: var(--surface-2); border: 1px solid var(--amber);
+            width: 50px; height: 50px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4); cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .notif-bell:hover { transform: scale(1.05); }
+        .notif-bell svg { width: 24px; height: 24px; stroke: var(--amber); fill: none; stroke-width: 2; }
+        .notif-badge {
+            position: absolute; top: -4px; right: -4px;
+            background: var(--red); color: #fff; font-size: 12px; font-weight: 800;
+            width: 22px; height: 22px; border-radius: 50%; display: none;
+            align-items: center; justify-content: center; border: 2px solid var(--bg);
+        }
+        .notif-panel {
+            position: fixed; top: 80px; right: 20px; width: 320px; max-height: 400px; overflow-y: auto;
+            background: var(--surface); border: 1px solid var(--amber); border-radius: 12px; z-index: 9000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; flex-direction: column;
+        }
+        .notif-panel-header {
+            padding: 12px 16px; border-bottom: 1px solid var(--border); font-weight: 800; color: var(--amber);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .notif-panel-header button { background: none; border: 0; color: var(--text-mute); cursor: pointer; font-size: 1.2rem; }
+        .notif-list { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+        
         /* --- RESPONSIVE FIXES --- */
         @media(max-width: 1050px){
             .wrap{grid-template-columns:1fr; padding-bottom: 80px;}
@@ -221,6 +250,8 @@
             .cartbar.show{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--amber);color:#0b1220;padding:16px 20px;justify-content:space-between;align-items:center;font-weight:800;box-shadow:0 -10px 25px -5px rgba(0,0,0,0.5)}
             .cartbar button{background:#0b1220;color:var(--amber);border:0;border-radius:8px;padding:12px 20px;font-weight:800;font-size:.95rem; cursor:pointer}
             .back-top{bottom:82px;right:14px}
+            .notif-bell { top: 12px; right: 12px; width: 44px; height: 44px; }
+            .notif-panel { top: 64px; right: 12px; left: 12px; width: auto; }
         }
         
         @media(max-width: 640px){
@@ -247,6 +278,26 @@
 <body>
 
 <?php include __DIR__ . '/includes/header.php'; ?>
+
+<!-- NOTIFICATION BELL -->
+<div class="notif-bell" id="notifBell" onclick="toggleNotifPanel()">
+    <svg viewBox="0 0 24 24">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+    </svg>
+    <div class="notif-badge" id="notifBadge" style="display: none;">0</div>
+</div>
+
+<!-- NOTIFICATION PANEL -->
+<div class="notif-panel" id="notifPanel">
+    <div class="notif-panel-header">
+        <span>Notifications</span>
+        <button onclick="toggleNotifPanel()">&times;</button>
+    </div>
+    <div id="notifList" class="notif-list">
+        <div style="text-align: center; color: var(--text-mute); font-size: 0.85rem; padding: 20px 0;">No new notifications</div>
+    </div>
+</div>
 
 <div class="wrap">
     <!-- PRODUCT LIST -->
@@ -508,7 +559,6 @@ function renderHeldBills() {
 $('holdBtn').onclick = () => {
     if (cart.size === 0) return;
     
-    // Open Custom Modal
     $('holdName').value = currentHeldBillName || "Tab " + (heldBills.length + 1);
     $('holdModal').classList.add('open');
     setTimeout(() => $('holdName').select(), 100);
@@ -523,7 +573,6 @@ $('holdConfirm').onclick = () => {
         return;
     }
     
-    // If we are currently editing a held bill, remove the old one first to prevent duplicates
     if (currentHeldBillName) {
         const oldIndex = heldBills.findIndex(b => b.name === currentHeldBillName);
         if (oldIndex !== -1) heldBills.splice(oldIndex, 1);
@@ -560,16 +609,14 @@ function resumeBill(index) {
         cart.set(String(item.id), { ...item });
     });
     
-    currentHeldBillName = bill.name; // Remember which bill we are editing
+    currentHeldBillName = bill.name; 
     renderTable();
     renderCart();
     showToast(`Loaded bill: ${bill.name}`);
 }
 
-/* Clear logic puts the bill back if it was held */
 $('clear').onclick = () => { 
     if (currentHeldBillName) {
-        // Automatically save it back to held bills
         heldBills.push({
             name: currentHeldBillName,
             items: [...cart.values()],
@@ -701,7 +748,6 @@ $('pay').onclick = async () => {
         if (r.error) { 
             $('hint').textContent = r.error; 
             $('hint').className = 'hint bad'; 
-            // Do not auto-load, so the user can read the error
             $('pay').textContent = 'Complete Payment'; 
             $('pay').disabled = false;
         }
@@ -792,4 +838,133 @@ function printReceipt(data) {
 $('dNew').onclick = () => { $('done').classList.remove('open'); $('q').value = ''; load(); $('q').focus(); };
 
 load();
+
+/* --- RESTAURANT NOTIFICATION LOGIC --- */
+let seenReadyOrderIds = new Set();
+let pendingNotifications = [];
+
+function toggleNotifPanel() {
+    const panel = document.getElementById('notifPanel');
+    panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+}
+
+function updateBadge() {
+    const badge = document.getElementById('notifBadge');
+    if (pendingNotifications.length > 0) {
+        badge.textContent = pendingNotifications.length;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function renderNotifList() {
+    const list = document.getElementById('notifList');
+    if (pendingNotifications.length === 0) {
+        list.innerHTML = '<div style="text-align: center; color: var(--text-mute); font-size: 0.85rem; padding: 20px 0;">No new notifications</div>';
+        return;
+    }
+    
+    // Show latest at top
+    list.innerHTML = [...pendingNotifications].reverse().map(order => {
+        const tableText = order.table_number ? `Table ${order.table_number}` : 'Counter';
+        return `
+        <div style="background: var(--surface-2); border-left: 4px solid var(--amber); padding: 10px; border-radius: 6px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                <strong style="color: var(--text);">Order #${order.order_id}</strong>
+                <span style="font-size: 0.75rem; color: var(--text-mute);">${tableText}</span>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-dim);">${esc(order.customer_name)}</div>
+            <div style="font-size: 0.75rem; color: #4ade80; font-weight: 700; margin-top: 4px;">Ready for collection</div>
+        </div>
+    `}).join('');
+}
+
+async function checkRestaurantOrders() {
+    try {
+        const res = await fetch('api/check_restaurant_orders.php');
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        if (data.status === 'success' && data.data) {
+            let hasNew = false;
+            data.data.forEach(order => {
+                if (!seenReadyOrderIds.has(order.order_id)) {
+                    seenReadyOrderIds.add(order.order_id);
+                    pendingNotifications.push(order);
+                    hasNew = true;
+                }
+            });
+            
+            if (hasNew) {
+                // Vibrate device
+                if ("vibrate" in navigator) {
+                    navigator.vibrate([300, 100, 300, 100, 300]);
+                }
+                
+                updateBadge();
+                renderNotifList();
+                
+                // Show popup for the newest order
+                const newest = pendingNotifications[pendingNotifications.length - 1];
+                showRestaurantNotification(newest);
+            }
+        }
+    } catch (e) {
+        console.log("Restaurant poll error:", e);
+    }
+}
+
+function showRestaurantNotification(order) {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 9999;
+        background: #111c2e; border: 2px solid #f59e0b; border-radius: 12px;
+        padding: 16px 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        display: flex; flex-direction: column; gap: 6px; min-width: 320px;
+        animation: slideInRight 0.3s ease-out forwards;
+    `;
+    
+    if (!document.getElementById('notif-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notif-styles';
+        style.innerHTML = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOutRight {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    const tableText = order.table_number ? `Table ${order.table_number}` : 'Counter';
+
+    toast.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#f59e0b; font-size:1.1rem;">🍔 Restaurant Order Ready!</strong>
+            <button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.2rem;">&times;</button>
+        </div>
+        <div style="color:#e2e8f0; font-weight:700; font-size:1rem;">Order #${order.order_id} (${tableText})</div>
+        <div style="color:#94a3b8; font-size:0.85rem; margin-top:4px;">Please collect from kitchen</div>
+    `;
+
+    document.body.appendChild(toast);
+
+    // Auto-remove after exactly 5 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.animation = 'slideOutRight 0.3s ease-in forwards';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 5000);
+}
+
+// Start polling every 5 seconds
+setInterval(checkRestaurantOrders, 5000);
+// Initial check on load
+setTimeout(checkRestaurantOrders, 2000);
 </script></body></html>

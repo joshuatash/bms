@@ -194,6 +194,8 @@ if ($isCashier) {
 
         var currentMaxId = 0;
         var availableVoices = [];
+        let lastPaidId = 0;
+        let isInitialLoad = true;
 
         function loadVoices() {
             availableVoices = window.speechSynthesis.getVoices();
@@ -206,6 +208,12 @@ if ($isCashier) {
         document.addEventListener("DOMContentLoaded", function() {
             loadKitchenOrders();
             startLiveUpdates();
+            
+            // Auto-refresh the queue every 10 seconds so it perfectly reflects the waitress clearing orders
+            setInterval(loadKitchenOrders, 10000);
+            
+            // Check for paid alerts every 4 seconds
+            setInterval(checkKitchenAlerts, 4000);
         });
 
         function loadKitchenOrders() {
@@ -263,8 +271,6 @@ if ($isCashier) {
                         startLiveUpdates();
                     }, 3000);
                 };
-            } else {
-                setInterval(loadKitchenOrders, 7000);
             }
         }
 
@@ -285,7 +291,7 @@ if ($isCashier) {
                 window.speechSynthesis.cancel();
                 
                 var utterance = new SpeechSynthesisUtterance(message);
-                utterance.rate = 1.5; // FAST SPEED 1.5X
+                utterance.rate = 1.0; // NORMAL SPEED
                 utterance.pitch = 1.0; 
                 utterance.volume = 1.0;
                 
@@ -337,6 +343,11 @@ if ($isCashier) {
                 }).join('');
 
                 var tableDisplay = order.table_number ? ('Table ' + order.table_number) : 'Counter Takeaway';
+                
+                // TRANSLATE DATABASE TYPES TO FRIENDLY NAMES
+                var orderTypeDisplay = order.order_type;
+                if (order.order_type === 'Dine-In') orderTypeDisplay = 'Paying Later';
+                if (order.order_type === 'Counter') orderTypeDisplay = 'Paying Now';
 
                 var actionBtn = '';
                 if (order.order_status === 'Received') {
@@ -357,7 +368,7 @@ if ($isCashier) {
                         '</div>' +
                         '<div class="kds-body">' +
                             '<div class="kds-customer"><i class="fa-solid fa-user me-1"></i>' + escapeHtml(order.customer_name) + '</div>' +
-                            '<div class="kds-meta"><i class="fa-solid fa-chair me-1"></i>' + tableDisplay + ' &middot; ' + order.order_type + '</div>' +
+                            '<div class="kds-meta"><i class="fa-solid fa-chair me-1"></i>' + tableDisplay + ' &middot; ' + orderTypeDisplay + '</div>' +
                             '<div class="kds-items">' + itemsHtml + '</div>' +
                             actionBtn +
                         '</div>' +
@@ -395,6 +406,90 @@ if ($isCashier) {
                 btn.disabled = false;
                 btn.innerHTML = original;
             });
+        }
+
+        /* --- KITCHEN PAID NOTIFICATION ALERT --- */
+        function showKitchenAlert(order) {
+            const toastEl = document.createElement('div');
+            toastEl.style.cssText = `
+                position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;
+                background: #16243a; border: 3px solid #4ade80; border-radius: 12px;
+                padding: 20px 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+                display: flex; flex-direction: column; align-items: center; gap: 8px;
+                animation: slideDown 0.4s ease-out forwards;
+            `;
+            
+            if (!document.getElementById('kitchen-alert-styles')) {
+                const style = document.createElement('style');
+                style.id = 'kitchen-alert-styles';
+                style.innerHTML = `
+                    @keyframes slideDown {
+                        from { transform: translate(-50%, -100%); opacity: 0; }
+                        to { transform: translate(-50%, 0); opacity: 1; }
+                    }
+                    @keyframes slideUp {
+                        from { transform: translate(-50%, 0); opacity: 1; }
+                        to { transform: translate(-50%, -100%); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            const tableText = order.table_number ? `Table ${order.table_number}` : 'Counter';
+
+            toastEl.innerHTML = `
+                <div style="color:#4ade80; font-size:1.5rem; font-weight:900; text-align:center;">
+                    💰 ORDER PAID & SETTLED
+                </div>
+                <div style="color:#e2e8f0; font-weight:700; font-size:1.2rem; text-align:center;">
+                    Order #${order.order_id} (${tableText})
+                </div>
+                <div style="color:#94a3b8; font-size:0.9rem;">Customer has paid. Ready to clear.</div>
+            `;
+
+            document.body.appendChild(toastEl);
+            
+            if ("vibrate" in navigator) navigator.vibrate([200, 100, 200, 100, 400]);
+
+            setTimeout(() => {
+                if (toastEl.parentElement) {
+                    toastEl.style.animation = 'slideUp 0.4s ease-in forwards';
+                    setTimeout(() => toastEl.remove(), 400);
+                }
+            }, 8000);
+        }
+
+        async function checkKitchenAlerts() {
+            try {
+                const res = await fetch('../api/api_restuarant/check_kitchen_notifications.php');
+                if (!res.ok) return;
+                const data = await res.json();
+                
+                if (data.status === 'success' && data.latest_paid) {
+                    const order = data.latest_paid;
+                    
+                    // Strict check for new order ID
+                    if (order.order_id > lastPaidId) {
+                        if (isInitialLoad) {
+                            lastPaidId = order.order_id;
+                            isInitialLoad = false;
+                        } else {
+                            lastPaidId = order.order_id;
+                            
+                            const tableText = order.table_number ? `Table ${order.table_number}` : 'Counter';
+                            const speech = `Order number ${order.order_id} for ${tableText} has been paid and settled successfully.`;
+                            
+                            speakMessage(speech);
+                            showKitchenAlert(order);
+                            
+                            // Auto refresh the KDS list to remove the cleared order immediately
+                            loadKitchenOrders();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log("Kitchen poll error:", e);
+            }
         }
     </script>
 </body>

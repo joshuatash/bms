@@ -5,21 +5,19 @@ require_login();
 
 $role = strtolower(current_user()['role'] ?? 'cashier');
 $isCashier = ($role === 'cashier');
+$isWaitress = ($role === 'waitress');
 
-// Cashiers belong on the POS, not the waitress station
-if ($isCashier) {
-    header('Location: pos.php');
-    exit;
-}
-
-// Only admin / manager may use the waitress dashboard
-if (!in_array($role, ['admin', 'manager'], true)) {
+// Allow cashiers, waitresses, admin, and managers
+if (!in_array($role, ['admin', 'manager', 'cashier', 'waitress'], true)) {
     header('Location: ' . home_for($role));
     exit;
 }
 
-// Whether the Bar Side link should render
+// Hide the Bar Side link for cashiers
 $showBarSide = !$isCashier;
+
+// Hide the top nav links if they are a cashier or waitress
+$hideTopNav = ($isCashier || $isWaitress);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -53,11 +51,28 @@ $showBarSide = !$isCashier;
         .desktop-nav .nav-link.active { color: var(--sidebar); background-color: var(--active-green); }
         .desktop-nav .nav-link.bar-link { color: var(--primary); border: 1px solid var(--primary); }
         .desktop-nav .nav-link.bar-link:hover { background-color: var(--primary); color: var(--sidebar); }
+        .desktop-nav .nav-link.logout-link { color: var(--danger); border: 1px solid var(--danger); }
+        .desktop-nav .nav-link.logout-link:hover { background-color: var(--danger); color: #fff; }
 
         .main-container { max-width: 1400px; margin: 0 auto; padding: 2rem 1.75rem; }
+        
+        /* Make page header wrap perfectly on mobile */
         .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
-        .sub-outstanding { display: inline-flex; align-items: center; gap: 8px; margin: 8px 0 0; padding: 8px 16px; background: linear-gradient(135deg, rgba(96,165,250,.15) 0%, rgba(96,165,250,.05) 100%); border: 1px solid rgba(96,165,250,.3); border-left: 4px solid var(--blue); border-radius: 8px; color: var(--blue); font-size: .85rem; font-weight: 700; letter-spacing: .3px; text-shadow: 0 0 12px rgba(96,165,250,.4); box-shadow: 0 4px 12px rgba(0,0,0,.2); animation: pulse-blue 2s infinite alternate; }
+        
+        /* Responsive Subtitle banner */
+        .sub-outstanding { 
+            display: inline-flex; align-items: center; gap: 8px; margin: 8px 0 0; padding: 8px 16px; 
+            background: linear-gradient(135deg, rgba(96,165,250,.15) 0%, rgba(96,165,250,.05) 100%); 
+            border: 1px solid rgba(96,165,250,.3); border-left: 4px solid var(--blue); border-radius: 8px; 
+            color: var(--blue); font-size: .85rem; font-weight: 700; letter-spacing: .3px; 
+            text-shadow: 0 0 12px rgba(96,165,250,.4); box-shadow: 0 4px 12px rgba(0,0,0,.2); 
+            animation: pulse-blue 2s infinite alternate; 
+            max-width: 100%; 
+            white-space: normal; 
+            word-break: break-word;
+        }
         @keyframes pulse-blue { 0% { border-color: rgba(96,165,250,.3); box-shadow: 0 4px 12px rgba(0,0,0,.2); } 100% { border-color: rgba(96,165,250,.6); box-shadow: 0 4px 15px rgba(96,165,250,.15); } }
+        .sub-outstanding svg { flex-shrink: 0; width: 16px; height: 16px; }
         
         .btn-refresh { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); font-weight: 700; font-size: 0.85rem; padding: 0.6rem 1.5rem; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; }
         .btn-refresh:hover { background: var(--border); color: #fff; }
@@ -98,8 +113,9 @@ $showBarSide = !$isCashier;
         .section-title.pending { color: var(--text-muted); }
         .section-title.tabs { color: var(--danger); }
 
-        .status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
-        .status-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; position: relative; transition: transform 0.2s, box-shadow 0.2s; }
+        /* Status Grid & Cards (Responsive) */
+        .status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+        .status-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; position: relative; transition: transform 0.2s, box-shadow 0.2s; display: flex; flex-direction: column; }
         .status-card.ready { border-color: rgba(96,165,250,.4); box-shadow: 0 4px 15px rgba(96,165,250,.1); }
         .status-card.ready::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--blue), #a78bfa); }
         .status-card.pending { opacity: 0.85; }
@@ -114,10 +130,10 @@ $showBarSide = !$isCashier;
         .badge-Received { background: rgba(148,163,184,.2); color: var(--text-muted); }
         .badge-Unpaid { background: rgba(248,113,113,.2); color: var(--danger); }
 
-        .card-body { padding: 18px; }
+        .card-body { padding: 18px; display: flex; flex-direction: column; flex-grow: 1; }
         .meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; color: var(--text-muted); }
         .meta-row strong { color: var(--text); font-size: 14px; }
-        .items-list { border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border); padding: 12px 0; margin: 12px 0 16px; }
+        .items-list { border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border); padding: 12px 0; margin: 12px 0 16px; flex-grow: 1; }
         .item-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 15px; }
         .item-row strong { color: var(--warning); font-size: 16px; margin-right: 8px; }
 
@@ -138,7 +154,7 @@ $showBarSide = !$isCashier;
         .view-details-link i { transition: transform 0.2s; }
         .view-details-link:hover i { transform: translateY(2px); }
 
-        .empty-state { padding: 3rem 1rem; text-align: center; color: var(--text-muted); background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; }
+        .empty-state { padding: 3rem 1rem; text-align: center; color: var(--text-muted); background: var(--surface); border: 1px dashed var(--border); border-radius: 12px; grid-column: 1 / -1; }
         .empty-state i { font-size: 2rem; margin-bottom: 1rem; opacity: 0.5; }
 
         /* Details Bottom Sheet */
@@ -203,6 +219,13 @@ $showBarSide = !$isCashier;
             .page-header { flex-direction: column; align-items: stretch; gap: 1rem; }
             .btn-refresh { width: 100%; justify-content: center; }
             .metrics-grid { grid-template-columns: 1fr; }
+            .sub-outstanding { width: 100%; justify-content: center; } /* Cover full width on mobile */
+        }
+        
+        @media (max-width: 480px) {
+            .sub-outstanding { font-size: 0.78rem; padding: 8px 12px; }
+            .metric-value { font-size: 1.5rem; }
+            .section-title { margin: 16px 0 12px; }
         }
     </style>
 </head>
@@ -214,15 +237,25 @@ $showBarSide = !$isCashier;
                 <div>Big Wallet Lounge <span>Restaurant</span></div>
             </a>
             <ul class="desktop-nav">
-                <li><a class="nav-link" href="index.php">Dashboard</a></li>
-                <li><a class="nav-link" href="pos.php">Counter POS</a></li>
-                <li><a class="nav-link" href="kitchen.php">Kitchen KDS</a></li>
-                <li><a class="nav-link" href="inventory.php">Inventory</a></li>
-                <li><a class="nav-link" href="admin.php">Menu &amp; Prices</a></li>
-                <li><a class="nav-link" href="reports.php">Revenue</a></li>
-                <li><a class="nav-link active" href="waitress.php">Waitress</a></li>
-                <?php if ($showBarSide): ?>
-                <li class="ms-2"><a class="nav-link bar-link" href="../dashboard.php">Bar Side &rarr;</a></li>
+                <?php if ($hideTopNav): ?>
+                    <!-- SHOW ONLY THESE FOR CASHIER / WAITRESS -->
+                    <li><a class="nav-link" href="pos.php">Restaurant POS</a></li>
+                    <li><a class="nav-link active" href="waitress.php">Restaurant Waitress</a></li>
+                    <li class="ms-2"><a class="nav-link bar-link" href="../pos.php">Bar POS</a></li>
+                    <li class="ms-2"><a class="nav-link logout-link" href="../logout.php"><i class="fa-solid fa-power-off me-1"></i> Logout</a></li>
+                <?php else: ?>
+                    <!-- FULL NAV FOR ADMINS & MANAGERS -->
+                    <li><a class="nav-link" href="index.php">Dashboard</a></li>
+                    <li><a class="nav-link" href="pos.php">Counter POS</a></li>
+                    <li><a class="nav-link" href="kitchen.php">Kitchen KDS</a></li>
+                    <li><a class="nav-link" href="inventory.php">Inventory</a></li>
+                    <li><a class="nav-link" href="admin.php">Menu &amp; Prices</a></li>
+                    <li><a class="nav-link" href="reports.php">Revenue</a></li>
+                    <li><a class="nav-link active" href="waitress.php">Waitress</a></li>
+                    <?php if ($showBarSide): ?>
+                    <li class="ms-2"><a class="nav-link bar-link" href="../dashboard.php">Bar Side &rarr;</a></li>
+                    <?php endif; ?>
+                    <li class="ms-2"><a class="nav-link logout-link" href="../logout.php"><i class="fa-solid fa-power-off me-1"></i> Logout</a></li>
                 <?php endif; ?>
             </ul>
         </div>
@@ -328,6 +361,13 @@ $showBarSide = !$isCashier;
                 <span>Total Bill</span>
                 <strong id="det-total">UGX 0</strong>
             </div>
+
+            <!-- ACTION BUTTON INSIDE DETAILS SHEET -->
+            <div id="detail-action-container" style="margin-top: 20px; display: none;">
+                <button class="btn-serve" id="btn-detail-action" style="width: 100%; height: 52px; border-radius: 12px;">
+                    <i class="fa-solid fa-check-double"></i> Deliver & Settle
+                </button>
+            </div>
         </div>
     </div>
 
@@ -391,15 +431,25 @@ $showBarSide = !$isCashier;
     </div>
 
     <nav class="mobile-bottom-nav">
-        <a href="index.php" class="mobile-nav-link"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
-        <a href="pos.php" class="mobile-nav-link"><i class="fa-solid fa-cash-register"></i>POS</a>
-        <a href="kitchen.php" class="mobile-nav-link"><i class="fa-solid fa-fire-burner"></i>Kitchen</a>
-        <a href="inventory.php" class="mobile-nav-link"><i class="fa-solid fa-boxes-stacked"></i>Stock</a>
-        <a href="admin.php" class="mobile-nav-link"><i class="fa-solid fa-gear"></i>Menu</a>
-        <a href="reports.php" class="mobile-nav-link"><i class="fa-solid fa-coins"></i>Revenue</a>
-        <a href="waitress.php" class="mobile-nav-link active"><i class="fa-solid fa-bell-concierge"></i>Waitress</a>
-        <?php if ($showBarSide): ?>
-        <a href="../dashboard.php" class="mobile-nav-link bar-link"><i class="fa-solid fa-arrow-left"></i>Bar Side</a>
+        <?php if ($hideTopNav): ?>
+            <!-- MOBILE NAV FOR CASHIER / WAITRESS -->
+            <a href="pos.php" class="mobile-nav-link"><i class="fa-solid fa-cash-register"></i>Rest. POS</a>
+            <a href="waitress.php" class="mobile-nav-link active"><i class="fa-solid fa-bell-concierge"></i>Waitress</a>
+            <a href="../pos.php" class="mobile-nav-link bar-link"><i class="fa-solid fa-martini-glass"></i>Bar POS</a>
+            <a href="../logout.php" class="mobile-nav-link text-danger"><i class="fa-solid fa-power-off"></i>Logout</a>
+        <?php else: ?>
+            <!-- MOBILE NAV FOR ADMINS / MANAGERS -->
+            <a href="index.php" class="mobile-nav-link"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+            <a href="pos.php" class="mobile-nav-link"><i class="fa-solid fa-cash-register"></i>POS</a>
+            <a href="kitchen.php" class="mobile-nav-link"><i class="fa-solid fa-fire-burner"></i>Kitchen</a>
+            <a href="inventory.php" class="mobile-nav-link"><i class="fa-solid fa-boxes-stacked"></i>Stock</a>
+            <a href="admin.php" class="mobile-nav-link"><i class="fa-solid fa-gear"></i>Menu</a>
+            <a href="reports.php" class="mobile-nav-link"><i class="fa-solid fa-coins"></i>Revenue</a>
+            <a href="waitress.php" class="mobile-nav-link active"><i class="fa-solid fa-bell-concierge"></i>Waitress</a>
+            <?php if ($showBarSide): ?>
+            <a href="../dashboard.php" class="mobile-nav-link bar-link"><i class="fa-solid fa-arrow-left"></i>Bar Side</a>
+            <?php endif; ?>
+            <a href="../logout.php" class="mobile-nav-link text-danger"><i class="fa-solid fa-power-off"></i>Logout</a>
         <?php endif; ?>
     </nav>
 
@@ -497,7 +547,7 @@ $showBarSide = !$isCashier;
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 var utterance = new SpeechSynthesisUtterance(message);
-                utterance.rate = 1.5; 
+                utterance.rate = 1.0; // NORMAL VOICE SPEED
                 utterance.pitch = 1.0; 
                 utterance.volume = 1.0;
                 
@@ -579,19 +629,23 @@ $showBarSide = !$isCashier;
             } else {
                 var oldestReady = readyOrders[0];
                 
-                var itemsText = oldestReady.items.map(function(i) { return i.quantity + ' ' + i.item_name.toUpperCase(); }).join(', and ');
+                // VOICE ANNOUNCEMENT: "Order number [ID], is ready for delivery at [Table Number]"
                 var table = oldestReady.table_number ? 'Table ' + oldestReady.table_number : 'Counter';
-                var msg = "Order number " + oldestReady.order_id + ", " + itemsText + " is ready for " + table;
+                var msg = "Order number " + oldestReady.order_id + ", is ready for delivery at " + table;
                 
-                speakMessage(msg);
-                playBeep();
-                vibrate();
-
-                voiceInterval = setInterval(function() {
+                if (lastAnnouncedOrder !== oldestReady.order_id) {
+                    lastAnnouncedOrder = oldestReady.order_id;
                     speakMessage(msg);
                     playBeep();
                     vibrate();
-                }, 15000);
+
+                    if (voiceInterval) { clearInterval(voiceInterval); }
+                    voiceInterval = setInterval(function() {
+                        speakMessage(msg);
+                        playBeep();
+                        vibrate();
+                    }, 15000);
+                }
 
                 readyOrders.forEach(function(order) { readyContainer.appendChild(createCard(order, 'ready')); });
             }
@@ -614,7 +668,8 @@ $showBarSide = !$isCashier;
                 return '<div class="item-row"><span><strong>' + i.quantity + 'x</strong> ' + escapeHtml(i.item_name) + '</span></div>';
             }).join('');
 
-            var tableDisplay = order.table_number ? ('Table ' + order.table_number) : 'Counter Takeaway';
+            // DISPLAY Logic: Show Table Name. If no table, show "Paying Now"
+            var tableDisplay = order.table_number ? ('Table ' + order.table_number) : 'Paying Now';
             var btn = '';
             
             if (type === 'ready') {
@@ -705,7 +760,7 @@ $showBarSide = !$isCashier;
                 
                 filtered.forEach(function(order) {
                     var itemsList = order.items.map(function (i) { return i.quantity + 'x ' + i.item_name; }).join(', ');
-                    var tableDisplay = order.table_number ? ('Table ' + order.table_number) : 'Counter';
+                    var tableDisplay = order.table_number ? ('Table ' + order.table_number) : 'Paying Now';
 
                     var tr = document.createElement('tr');
                     tr.innerHTML = 
@@ -728,7 +783,7 @@ $showBarSide = !$isCashier;
         function openOrderDetails(order) {
             document.getElementById('det-order-id').innerText = '#' + order.order_id;
             document.getElementById('det-customer').innerText = order.customer_name;
-            document.getElementById('det-table').innerText = order.table_number ? ('Table ' + order.table_number) : 'Counter';
+            document.getElementById('det-table').innerText = order.table_number ? ('Table ' + order.table_number) : 'Paying Now';
             document.getElementById('det-status').innerText = order.order_status + ' / ' + order.payment_status;
             
             var itemsContainer = document.getElementById('detail-items-container');
@@ -748,6 +803,34 @@ $showBarSide = !$isCashier;
 
             document.getElementById('det-total').innerText = 'UGX ' + Number(order.total_amount).toLocaleString();
             
+            // Add action button in details sheet
+            var actionContainer = document.getElementById('detail-action-container');
+            var actionBtn = document.getElementById('btn-detail-action');
+            
+            if (order.order_status === 'Ready') {
+                actionContainer.style.display = 'block';
+                actionBtn.innerHTML = '<i class="fa-solid fa-check-double"></i> Deliver & Settle';
+                actionBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    closeDetails();
+                    if (order.order_type === 'Counter') {
+                        directServe(order.order_id, 'Paid');
+                    } else {
+                        openPaymentModal(order.order_id, order.total_amount, order.table_number || 0, 'serve');
+                    }
+                };
+            } else if (order.order_status === 'Disposed' && order.payment_status === 'Unpaid') {
+                actionContainer.style.display = 'block';
+                actionBtn.innerHTML = '<i class="fa-solid fa-money-bill"></i> Settle Bill';
+                actionBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    closeDetails();
+                    openPaymentModal(order.order_id, order.total_amount, order.table_number || 0, 'settle');
+                };
+            } else {
+                actionContainer.style.display = 'none';
+            }
+
             document.getElementById('detail-overlay').classList.add('open');
         }
 
@@ -783,7 +866,7 @@ $showBarSide = !$isCashier;
             document.getElementById('pay-action-type').value = actionType;
             document.getElementById('modal-order-id').innerText = orderId;
             document.getElementById('modal-total').innerText = Number(total).toLocaleString();
-            document.getElementById('modal-table').innerText = table > 0 ? table : 'Counter';
+            document.getElementById('modal-table').innerText = table > 0 ? table : 'Paying Now';
             paymentModalInstance.show();
         }
 

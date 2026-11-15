@@ -168,7 +168,7 @@ if ($isCashier) {
         <div class="page-header-row">
             <div>
                 <h1 class="h3 fw-bold mb-1" style="color: var(--text);">Operations Dashboard</h1>
-                <p class="text-muted mb-0" style="font-size: 0.88rem;">Live tracking of active customer tabs, kitchen queues, and table fulfillment.</p>
+                
             </div>
         </div>
 

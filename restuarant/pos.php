@@ -82,27 +82,13 @@
             padding-bottom: 10px; 
             margin-bottom: 1.25rem; 
             scroll-behavior: smooth;
-            
-            /* Show the scrollbar clearly on desktop */
             scrollbar-width: thin;
             scrollbar-color: var(--border) var(--surface);
         }
-        
-        /* Custom scrollbar for Chrome, Edge, Safari */
-        .category-scroll::-webkit-scrollbar {
-            height: 6px;
-        }
-        .category-scroll::-webkit-scrollbar-track {
-            background: var(--surface);
-            border-radius: 10px;
-        }
-        .category-scroll::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 10px;
-        }
-        .category-scroll::-webkit-scrollbar-thumb:hover {
-            background: var(--primary);
-        }
+        .category-scroll::-webkit-scrollbar { height: 6px; }
+        .category-scroll::-webkit-scrollbar-track { background: var(--surface); border-radius: 10px; }
+        .category-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .category-scroll::-webkit-scrollbar-thumb:hover { background: var(--primary); }
         
         .category-chip { 
             background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); 
@@ -231,7 +217,7 @@
                         <select id="table-select" class="form-select"></select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Order Type</label>
+                        <label class="form-label">Payment Type</label>
                         <select id="order-type" class="form-select">
                             <option value="Counter">Paying Now</option>
                             <option value="Dine-In">Paying Later</option>
@@ -280,7 +266,7 @@
             <label class="form-label">Assign Table</label>
             <select id="table-select-m"></select>
 
-            <label class="form-label">Order Type</label>
+            <label class="form-label">Payment Type</label>
             <select id="order-type-m">
                 <option value="Counter">Paying Now</option>
                 <option value="Dine-In">Paying Later</option>

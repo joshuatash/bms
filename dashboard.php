@@ -3,66 +3,62 @@ require __DIR__ . '/config.php';
 require_admin(); 
 $active = 'dashboard'; 
 $pdo = db(); 
+
 // Fetch Admin Name from Database
 $adminId = current_user()['user_id'] ?? current_user()['id'];
 $stmtName = $pdo->prepare("SELECT full_name FROM users WHERE user_id = ?");
 $stmtName->execute([$adminId]);
 $adminName = $stmtName->fetchColumn() ?: current_user()['name'];
-// Helper function
-$money = fn($n) => number_format((float)$n);
 
-// --- TIME SHIFT LOGIC (Resets at 7:00 AM) ---
-// We subtract 7 hours from the current server time.
-// Any transaction after midnight but before 7am is treated as yesterday.
-$shift = "DATE_SUB(NOW(), INTERVAL 7 HOUR)";
-$shiftToday = "DATE(DATE_SUB(NOW(), INTERVAL 7 HOUR))";
-$shiftMonthStart = "DATE_FORMAT(DATE_SUB(NOW(), INTERVAL 7 HOUR), '%Y-%m-01')";
-
-// Stock Stats
+// Get Stats
 $p = $pdo->query("SELECT COUNT(*) total, COALESCE(SUM(bottles_available > 0 AND bottles_available <= low_stock_threshold),0) low, COALESCE(SUM(bottles_available = 0),0) out_of_stock FROM products WHERE is_active = 1")->fetch();
+
 // Overall Stock Balance — total retail value of available stock
 $stockBalance = (float)$pdo->query("SELECT COALESCE(SUM(bottles_available * price_per_bottle), 0) FROM products WHERE is_active = 1 AND bottles_available > 0")->fetchColumn();
-// Expected Profit — total potential profit from available stock (retail value − cost value)
+
+// Expected Profit — total potential profit from available stock (retail − cost)
 $expectedProfit = (float)$pdo->query("SELECT COALESCE(SUM(bottles_available * (price_per_bottle - buying_price)), 0) FROM products WHERE is_active = 1 AND bottles_available > 0")->fetchColumn();
 
-// Sales Stats (Shifted)
-$salesToday = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE DATE(sale_date) = $shiftToday")->fetchColumn();
-$salesMonth = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE sale_date >= $shiftMonthStart")->fetchColumn();
+// Sales Stats
+$salesToday = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE DATE(sale_date) = CURDATE()")->fetchColumn();
+$salesMonth = (float)$pdo->query("SELECT COALESCE(SUM(total_amount),0) FROM sales_record WHERE sale_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
 
-// Profit Stats (Shifted)
-$profitToday = (float)$pdo->query("SELECT COALESCE(SUM(i.line_total - (COALESCE(p.buying_price, 0) * i.qty_bottles)), 0) FROM sales_record_items i JOIN sales_record s ON s.sale_id = i.sale_id LEFT JOIN products p ON p.product_id = i.product_id WHERE DATE(s.sale_date) = $shiftToday")->fetchColumn();
-$profitMonth = (float)$pdo->query("SELECT COALESCE(SUM(i.line_total - (COALESCE(p.buying_price, 0) * i.qty_bottles)), 0) FROM sales_record_items i JOIN sales_record s ON s.sale_id = i.sale_id LEFT JOIN products p ON p.product_id = i.product_id WHERE s.sale_date >= $shiftMonthStart")->fetchColumn();
+// Profit Stats
+$profitToday = (float)$pdo->query("SELECT COALESCE(SUM(i.line_total - (COALESCE(p.buying_price, 0) * i.qty_bottles)), 0) FROM sales_record_items i JOIN sales_record s ON s.sale_id = i.sale_id LEFT JOIN products p ON p.product_id = i.product_id WHERE DATE(s.sale_date) = CURDATE()")->fetchColumn();
+$profitMonth = (float)$pdo->query("SELECT COALESCE(SUM(i.line_total - (COALESCE(p.buying_price, 0) * i.qty_bottles)), 0) FROM sales_record_items i JOIN sales_record s ON s.sale_id = i.sale_id LEFT JOIN products p ON p.product_id = i.product_id WHERE s.sale_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
 
 $users = (int)$pdo->query("SELECT COUNT(*) FROM users WHERE is_active = 1")->fetchColumn();
 
-// Expenses Stats (Shifted)
-$expensesToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE DATE(expense_date) = $shiftToday")->fetchColumn();
-$expensesMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE expense_date >= $shiftMonthStart")->fetchColumn();
+// Expenses Stats
+$expensesToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE expense_date = CURDATE()")->fetchColumn();
+$expensesMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM expenses WHERE expense_date >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
 
 // Net Profit Calculation (Gross Profit - Expenses)
 $netProfitToday = $profitToday - $expensesToday;
 $netProfitMonth = $profitMonth - $expensesMonth;
 
-// Rooms Revenue Stats (Shifted)
+// Rooms Revenue Stats
 $roomsToday = $roomsMonth = 0.0; 
 try {
-    $roomsToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM room_payments WHERE DATE(paid_at) = $shiftToday")->fetchColumn();
-    $roomsMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM room_payments WHERE paid_at >= $shiftMonthStart")->fetchColumn();
+    $roomsToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM room_payments WHERE paid_at >= CURDATE()")->fetchColumn();
+    $roomsMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM room_payments WHERE paid_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
 } catch (PDOException $e) {}
 
-// PA System Stats (Shifted)
+// PA System Stats
 $paToday = $paMonth = 0.0;
 try {
-    $paToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM pa_collections WHERE DATE(created_at) = $shiftToday")->fetchColumn();
-    $paMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM pa_collections WHERE created_at >= $shiftMonthStart")->fetchColumn();
+    $paToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM pa_collections WHERE DATE(created_at) = CURDATE()")->fetchColumn();
+    $paMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM pa_collections WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
 } catch (PDOException $e) {}
 
-// Ground Hire Stats (Shifted)
+// Ground Hire Stats
 $ghToday = $ghMonth = 0.0;
 try {
-    $ghToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM ground_hire WHERE DATE(created_at) = $shiftToday")->fetchColumn();
-    $ghMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM ground_hire WHERE created_at >= $shiftMonthStart")->fetchColumn();
+    $ghToday = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM ground_hire WHERE DATE(created_at) = CURDATE()")->fetchColumn();
+    $ghMonth = (float)$pdo->query("SELECT COALESCE(SUM(amount),0) FROM ground_hire WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')")->fetchColumn();
 } catch (PDOException $e) {}
+
+$money = fn($n) => number_format((float)$n);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -223,6 +219,7 @@ try {
             <small>Ground Hire Today</small><b><?= $money($ghToday) ?></b><span class="more">View details &rarr;</span>
         </a>
     </section>
+
     <div class="group">Money &amp; Profit (<?= CURRENCY ?>) - This Month</div>
     <section class="tiles">
         <a class="tile money link" href="sales_report.php?period=month">
@@ -249,6 +246,7 @@ try {
             <small>Ground Hire This Month</small><b><?= $money($ghMonth) ?></b><span class="more">View details &rarr;</span>
         </a>
     </section>
+
     <div class="group">Stock &amp; Accounts</div>
     <section class="tiles">
         <a class="tile stock-balance link" href="products.php">
@@ -262,7 +260,7 @@ try {
             <span class="more">View inventory &rarr;</span>
         </a>
         <a class="tile link" href="products.php">
-            <small>Products</small><b><?= (int)$p['total'] ?></b><span class="more">View details &rarr;</span>
+            <small>Total Products</small><b><?= (int)$p['total'] ?></b><span class="more">View details &rarr;</span>
         </a>
         <a class="tile low link" href="products.php?status=low">
             <small>Low Stock</small><b><?= (int)$p['low'] ?></b><span class="more">View items &rarr;</span>

@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'reset_sys
     $scope = (string)($_POST['scope'] ?? '');
     if (!hash_equals($_SESSION['csrf'] ?? '', (string)($_POST['csrf'] ?? ''))) {
         $resetError = 'Your session expired. Reload the page and try again.';
-    } elseif (!in_array($scope, ['all', 'sales', 'inventory', 'rooms', 'expenses', 'logs', 'pa_system', 'ground_hire'], true)) {
+    } elseif (!in_array($scope, ['all', 'sales', 'inventory', 'rooms', 'expenses', 'logs', 'pa_system', 'ground_hire', 'restaurant'], true)) {
         $resetError = 'Choose a valid category to reset.';
     } else {
         $pdo = db();
@@ -28,10 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'reset_sys
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 0;");
                 $deletedSummary = [];
                 
+                // --- BAR / MAIN SYSTEM RESETS ---
                 if ($scope === 'all' || $scope === 'sales') {
                     $pdo->exec("TRUNCATE TABLE sales_record_items");
                     $pdo->exec("TRUNCATE TABLE sales_record");
-                    $deletedSummary[] = "All Sales";
+                    $deletedSummary[] = "All Bar Sales";
                 }
                 if ($scope === 'all' || $scope === 'inventory') {
                     $pdo->exec("TRUNCATE TABLE stock_entries");
@@ -52,21 +53,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'reset_sys
                     $pdo->exec("TRUNCATE TABLE login_sessions");
                     $deletedSummary[] = "All Activity Logs";
                 }
-                // --- PA SYSTEM RESET ---
                 if ($scope === 'all' || $scope === 'pa_system') {
                     $pdo->exec("TRUNCATE TABLE pa_collections"); 
                     $deletedSummary[] = "All PA System Hires";
                 }
-                // --- GROUND HIRE RESET ---
                 if ($scope === 'all' || $scope === 'ground_hire') {
                     $pdo->exec("TRUNCATE TABLE ground_hire");
                     $deletedSummary[] = "All Ground Hires";
                 }
+                
+                // --- RESTAURANT POS RESET (Now included in 'all') ---
+                if ($scope === 'all' || $scope === 'restaurant') {
+                    $pdo->exec("TRUNCATE TABLE restaurant_order_items");
+                    $pdo->exec("TRUNCATE TABLE restaurant_orders");
+                    // Ensure restaurant tables are reset, not deleted
+                    $pdo->exec("UPDATE restaurant_tables SET status = 'Available' WHERE status != 'Available'");
+                    $deletedSummary[] = "All Restaurant Orders (Tables kept & freed)";
+                }
 
                 $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
                 $summaryText = implode(', ', $deletedSummary);
-                log_activity('system_reset', "Reset system category [{$scope}]: removed {$summaryText}. User accounts & rooms kept.");
-                $_SESSION['flash_settings'] = "Success! Cleared: {$summaryText}. User accounts and rooms were safely kept.";
+                log_activity('system_reset', "Reset system category [{$scope}]: removed {$summaryText}. User accounts, products, rooms & tables kept.");
+                $_SESSION['flash_settings'] = "Success! Cleared: {$summaryText}. User accounts, products, rooms, and tables were safely kept.";
                 header('Location: settings.php');
                 exit;
             } catch (PDOException $ex) {
@@ -156,11 +164,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'reset_sys
             <span class="dz-icon" aria-hidden="true">!</span>
             <div>
                 <h2>Danger Zone: Reset System</h2>
-                <p>Permanently delete records like sales, stock entries, bookings, or clear everything for a fresh start. <b>User accounts, products, and physical rooms are always kept safe.</b></p>
+                <p>Permanently delete records like sales, stock entries, bookings, restaurant orders, or clear everything for a fresh start. <b>User accounts, products, and physical tables/rooms are always kept safe.</b></p>
             </div>
         </div>
         <ul class="chips">
-            <li>Sales</li><li>Stock entries</li><li>Bookings & Payments</li><li>Expenses</li><li>Activity logs</li><li>PA System</li><li>Ground Hire</li><li class="safe">User accounts kept</li><li class="safe">Products kept</li><li class="safe">Rooms kept</li>
+            <li>Sales</li><li>Stock entries</li><li>Bookings & Payments</li><li>Expenses</li><li>Activity logs</li><li>PA System</li><li>Ground Hire</li><li>Restaurant Orders</li><li class="safe">User accounts kept</li><li class="safe">Products kept</li><li class="safe">Tables/Rooms kept</li>
         </ul>
         <button class="btn danger" id="resetBtn" type="button">Reset System Data</button>
     </section>
@@ -169,14 +177,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['do'] ?? '') === 'reset_sys
 <div class="modal" id="resetModal">
     <form class="box" method="post" id="resetForm">
         <h3>Reset System Data</h3>
-        <div class="warnbox"><b>This cannot be undone.</b> Choose which category to reset below. Your user login accounts, product catalog, and physical room list will remain intact.</div>
+        <div class="warnbox"><b>This cannot be undone.</b> Choose which category to reset below. Your user login accounts, product catalog, and physical tables/rooms will remain intact.</div>
         <input type="hidden" name="do" value="reset_system">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <div class="r">
             <label>What to clear</label>
             <select name="scope">
-                <option value="all" selected>Everything (All sales, stock entries, bookings, expenses, logs, PA, Ground)</option>
-                <option value="sales">Sales only</option>
+                <option value="all" selected>Everything (Bar, Rooms, Restaurant, Expenses, Logs — keeps Users, Products, Rooms/Tables)</option>
+                <option value="restaurant">Restaurant Data only (Orders & Items — Tables kept)</option>
+                <option value="sales">Bar Sales only</option>
                 <option value="inventory">Inventory only (Stock entries — products kept)</option>
                 <option value="rooms">Bookings & Payments only (Rooms kept)</option>
                 <option value="expenses">Expenses only</option>

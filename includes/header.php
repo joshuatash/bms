@@ -124,15 +124,6 @@ $link = fn(string $key, string $href, string $label) =>
       <?= $link('pos', 'pos.php', 'Point of Sale') ?>
     <?php endif; ?>
 
-    <!-- NEW: Waitress Links (Visible to Admin, Manager, Cashier, Waitress) -->
-    <?php if (!$isHrHdr): ?>
-      <a href="restuarant/pos.php" style="color: #60A5FA; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
-          Waitress Side POS
-      </a>
-      <a href="restuarant/waitress.php" style="color: #60A5FA; font-weight: 700; display: flex; justify-content: space-between; align-items: center;">
-          Waitress Food Delivery
-      </a>
-    <?php endif; ?>
 
     <?php if ($isCashierHdr): ?>
       <?= $link('book_room', 'book_room.php', 'Book Room') ?>
